@@ -1,0 +1,260 @@
+{
+  "project": "ergonomic_wellness_ad_9x16",
+  "aspect_ratio": "9:16",
+  "width": 720,
+  "height": 1280,
+  "fps": 24,
+  "theme": "warm",
+  "max_budget_usd": 3.50,
+  "image_size": "1K",
+  "video_model": "gemini-omni-1.2-flash",
+  "vlm_qc_model": "gemini-3.5-flash-lite",
+  "qc": {
+    "min_pass_score": 8.5,
+    "min_dim_score": 7
+  },
+  "crossfade_sec": 0.35,
+  "keep_clip_ambient_volume": 0.0,
+  "show_chapter_bar": false,
+  "tts": {
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore",
+    "language": "zh-CN",
+    "tempo": 1.12,
+    "style": "Gentle, warm, natural, calm young Mandarin Chinese woman narrator, reassuring educational health lifestyle tone."
+  },
+  "bgm": {
+    "enabled": true,
+    "model": "lyria-3.5",
+    "filename": "bgm.mp3",
+    "volume": 0.14,
+    "prompt": "Soft acoustic piano melody with gentle warm string pads, calm and uplifting ambient background music, 78 BPM, instrumental only"
+  },
+  "narration_tracks": {
+    "seg1_intro": "很多人久坐之后，腰会有点酸，偶尔还会觉得核心支撑不太有力。",
+    "seg2_anatomy": "盆底肌是位于骨盆底部的一组肌肉，像一张吊床稳稳托着核心脏器。它不仅影响日常控制，也和腰背稳定息息相关。",
+    "seg3_why": "当这组肌肉逐渐变弱，久坐腰酸或控制力下降往往是渐进发生的，越早温和关注，恢复通常越轻松。",
+    "seg4_product": "自己盲练时，很多人不确定发力位置对不对。外置式坐姿训练垫提供了更轻松的方式，穿衣即可使用。",
+    "seg5_features": "坐下后气囊贴合支撑，主动收缩即可看到实时压力反馈，同时支持温热和轻柔震动放松。",
+    "seg6_outro": "关注身体核心，从日常的几分钟开始。"
+  },
+  "assets": [
+    {
+      "filename": "char_ref.jpg",
+      "prompt": "Natural lifestyle portrait photography of an East Asian woman in her late 20s, shoulder-length soft wavy black hair, fresh natural makeup, wearing a comfortable light heather-gray knit loungewear top and cream-white relaxed trousers in a bright sunlit minimalist living room. No text, no watermark."
+    },
+    {
+      "filename": "prod_studio.jpg",
+      "prompt": "Clean studio commercial product photograph of a sleek modern ergonomic contoured seated wellness trainer cushion on warm light oak wood in soft natural daylight: matte cool light-gray shell with subtle geometric micro-texture grip wings and a signature raised warm-orange grooved silicone center pad. Minimalist unbranded industrial design, no text, no watermark."
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot1_intro",
+      "tier": "standard",
+      "tts_id": "seg1_intro",
+      "keyframe_filename": "key1_desk_intro.jpg",
+      "keyframe_refs": ["char_ref.jpg"],
+      "keyframe_prompt": "Keep the exact same East Asian woman from the reference image sitting at a bright light-oak wood desk looking at a laptop, right hand gently resting under chin, sunlit sheer curtains and green plants, 9:16 vertical, no text.",
+      "video_duration": 6,
+      "lead_in": 1.6,
+      "tail_pad": 0.4,
+      "camera": {"framing": "MS", "angle": "eye-level 3/4", "movement": "gentle handheld follow"},
+      "beat_timeline": [
+        {"t": "0-2s", "action": "Woman sits at wooden desk looking at laptop, lightly resting right hand under chin and shifting seated posture"},
+        {"t": "2-4s", "action": "Stands up smoothly from the chair while briefly resting right hand against lower back"},
+        {"t": "4-6s", "action": "Takes a calm step toward the sunlit window, brief thoughtful expression relaxing quickly"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Same East Asian woman, shoulder-length wavy black hair, light gray knit top and cream trousers throughout",
+        "Calm natural expression, non-exaggerated non-anxious tone",
+        "Strictly NO AI-generated text, subtitles, or watermarks"
+      ],
+      "callouts": [
+        {"text": "久坐 · 产后 · 年龄增长\n核心肌群都在悄悄变化", "window": [0.58, 0.96], "y": 90}
+      ],
+      "subtitles": [
+        "很多人久坐之后，腰会有点酸",
+        "偶尔还会觉得核心支撑不太有力"
+      ]
+    },
+    {
+      "id": "shot2_3d",
+      "tier": "hero",
+      "tts_id": "seg2_anatomy",
+      "keyframe_filename": "key2_3d_pelvic.jpg",
+      "keyframe_prompt": "Clean 3D medical educational animation still on pure white studio background: semi-translucent frosted white pelvis frame illustrating the translucent blue-gray hammock muscle layer at the base gently cradling stylized pastel anatomical forms, 9:16 vertical, strictly no text.",
+      "video_duration": 7,
+      "lead_in": 0.3,
+      "tail_pad": 0.5,
+      "camera": {"framing": "MCU", "angle": "front-3/4 elevated medical view", "movement": "slow smooth orbital drift"},
+      "beat_timeline": [
+        {"t": "0-3.5s", "action": "Translucent blue-gray pelvic floor hammock smoothly contracts and lifts upward, stably supporting the structures above"},
+        {"t": "3.5-7s", "action": "Hammock gently relaxes downward illustrating reduced support"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Crisp pure white studio medical illustration background",
+        "Clean biomechanical hammock lift and relax motion without melting artifacts",
+        "Strictly NO text, labels, or arrows baked into the render"
+      ],
+      "callouts": [
+        {"text": "正常时：稳定支撑 ↑", "window": [0.26, 0.54], "y": 110},
+        {"text": "松弛后：支撑力下降 ↓", "window": [0.57, 0.88], "y": 110}
+      ],
+      "subtitles": [
+        "盆底肌位于骨盆底部，像一张吊床",
+        "稳稳托着核心脏器",
+        "它不仅影响日常控制，也和腰背稳定息息相关"
+      ]
+    },
+    {
+      "id": "shot3_kitchen",
+      "tier": "standard",
+      "tts_id": "seg3_why",
+      "keyframe_filename": "key3_kitchen_signal.jpg",
+      "keyframe_refs": ["char_ref.jpg"],
+      "keyframe_prompt": "Keep the exact same woman standing in a bright modern white-tile kitchen pouring warm water from a glass carafe into a ceramic mug, calm mindful expression, 9:16 vertical, no text.",
+      "video_duration": 6,
+      "lead_in": 0.3,
+      "tail_pad": 0.5,
+      "camera": {"framing": "MS", "angle": "eye-level side-front", "movement": "subtle slow push-in"},
+      "beat_timeline": [
+        {"t": "0-2.5s", "action": "Woman finishes pouring warm water into mug and places carafe gently on wooden counter"},
+        {"t": "2.5-6s", "action": "Pauses calmly, adjusts standing posture, and rests both hands softly over her lower abdomen in soft daylight"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Consistent character identity, wardrobe, and calm non-anxious tone",
+        "Realistic water pouring physics and natural hand anatomy",
+        "Strictly NO AI-generated text or watermarks"
+      ],
+      "callouts": [
+        {"text": "越早温和关注，恢复通常越轻松", "window": [0.45, 0.94], "y": 90}
+      ],
+      "subtitles": [
+        "当肌肉逐渐变弱，变化往往是渐进发生的",
+        "越早温和关注，恢复通常越轻松"
+      ]
+    },
+    {
+      "id": "shot4_place",
+      "tier": "hero",
+      "tts_id": "seg4_product",
+      "keyframe_filename": "key4_product_place.jpg",
+      "keyframe_refs": ["char_ref.jpg", "prod_studio.jpg"],
+      "keyframe_prompt": "Same woman placing the exact matte light-gray ergonomic trainer cushion with warm-orange grooved center pad from the second reference image onto a light oak chair seat in natural home daylight, 9:16 vertical, no text.",
+      "video_duration": 7,
+      "lead_in": 0.3,
+      "tail_pad": 0.5,
+      "camera": {"framing": "MS_to_MCU", "angle": "eye-level 3/4", "movement": "steady smooth tracking"},
+      "beat_timeline": [
+        {"t": "0-2.5s", "action": "Woman smoothly centers the light-gray ergonomic trainer with warm-orange pad onto the wooden chair seat using both hands"},
+        {"t": "2.5-4.5s", "action": "Hands release briefly so the contoured gray-and-orange product is clearly showcased"},
+        {"t": "4.5-7s", "action": "Woman turns naturally and begins sitting down comfortably onto the chair fully clothed"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Preserve exact product silhouette, matte cool light-gray shell with micro-texture, and raised warm-orange grooved center pad",
+        "Fully clothed natural seated usage, zero clipping or warping",
+        "Strictly NO AI-generated text overlays"
+      ],
+      "callouts": [
+        {"text": "穿衣即可使用 · 无需插入", "window": [0.48, 0.94], "y": 56}
+      ],
+      "subtitles": [
+        "自己盲练时，很多人不确定发力位置对不对",
+        "外置式坐姿训练垫提供了更轻松的方式",
+        "穿衣即可使用"
+      ]
+    },
+    {
+      "id": "shot5_use_app",
+      "tier": "hero",
+      "tts_id": "seg5_features",
+      "split_audio_ratio": [0.0, 0.60],
+      "keyframe_filename": "key5_use_app.jpg",
+      "keyframe_refs": ["char_ref.jpg", "prod_studio.jpg"],
+      "keyframe_prompt": "Same woman fully clothed sitting calmly on the light-gray-and-orange ergonomic trainer on a wooden chair, holding smartphone showing a clean glowing blue pressure wave curve app screen, 9:16 vertical, no text.",
+      "video_duration": 5,
+      "lead_in": 0.25,
+      "tail_pad": 0.2,
+      "camera": {"framing": "MS", "angle": "3/4 seated portrait", "movement": "gentle slow push-in"},
+      "beat_timeline": [
+        {"t": "0-2.5s", "action": "Fully clothed woman sits relaxed and upright on the trainer on the wooden chair looking calmly at her smartphone"},
+        {"t": "2.5-5s", "action": "Glowing blue biofeedback curve rises smoothly on screen as she gives a relaxed subtle nod"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Consistent woman, loungewear, and trainer edge visible on chair seat",
+        "Clean simple blue wave curve on phone screen without garbled UI text",
+        "Strictly NO overlaid subtitles or watermarks"
+      ],
+      "callouts": [
+        {"text": "实时压力反馈 · APP 课程指导", "window": [0.18, 0.92], "y": 86}
+      ],
+      "subtitles": [
+        "坐下后气囊贴合支撑",
+        "主动收缩即可看到实时压力反馈"
+      ]
+    },
+    {
+      "id": "shot5b_warm",
+      "tier": "hero",
+      "tts_id": "seg5_features",
+      "split_audio_ratio": [0.60, 1.0],
+      "keyframe_filename": "key5b_warm_glow.jpg",
+      "keyframe_refs": ["prod_studio.jpg"],
+      "keyframe_prompt": "Macro commercial product closeup of the exact matte light-gray micro-textured trainer cushion with raised warm-orange grooved silicone center emitting a gentle 45-degree warm amber thermal glow on light wood chair, 9:16 vertical, no text.",
+      "video_duration": 4,
+      "lead_in": 0.0,
+      "tail_pad": 0.4,
+      "camera": {"framing": "Macro", "angle": "elevated 3/4 product hero", "movement": "slow luxurious dolly push-in"},
+      "beat_timeline": [
+        {"t": "0-2s", "action": "Slow macro push-in highlighting the matte gray micro-texture and raised warm-orange grooved silicone pad"},
+        {"t": "2-4s", "action": "Orange center pad pulses gently with a comforting warm amber glow conveying soothing warmth and micro-vibration"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Exact fidelity to product shell texture, contour, and orange silicone pad",
+        "Subtle realistic warm thermal aura without fire or smoke artifacts",
+        "Strictly NO text or labels"
+      ],
+      "callouts": [
+        {"text": "45°C 温热 + 舒缓震动 · 居家放松", "window": [0.15, 0.92], "y": 90}
+      ],
+      "subtitles": [
+        "同时支持温热和轻柔震动放松"
+      ]
+    },
+    {
+      "id": "shot6_outro",
+      "tier": "standard",
+      "tts_id": "seg6_outro",
+      "keyframe_filename": "key6_window_smile.jpg",
+      "keyframe_refs": ["char_ref.jpg"],
+      "keyframe_prompt": "Same woman standing peacefully by a sunlit floor-to-ceiling living room window holding a warm ceramic mug, soft genuine positive smile, 9:16 vertical, no text.",
+      "video_duration": 4,
+      "lead_in": 0.3,
+      "tail_pad": 0.5,
+      "camera": {"framing": "MS", "angle": "eye-level sunlit portrait", "movement": "gentle slow pull-back"},
+      "beat_timeline": [
+        {"t": "0-2s", "action": "Woman stands peacefully by sunlit sheer-curtained window holding warm ceramic mug"},
+        {"t": "2-4s", "action": "Turns gently toward morning light with a genuine calm uplifting smile"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Consistent character identity and warm positive lifestyle tone",
+        "Strictly NO AI-generated text or watermarks"
+      ],
+      "callouts": [
+        {"text": "每天几分钟 · 居家即可", "window": [0.12, 0.85], "y": 90}
+      ],
+      "subtitles": [
+        "关注身体核心，从日常的几分钟开始"
+      ]
+    }
+  ],
+  "endcard": {
+    "enabled": true,
+    "image": "prod_studio.jpg",
+    "duration": 2.5,
+    "title": "外置式坐姿盆底肌训练垫",
+    "subtitle": "穿衣即用 · 压力反馈 · 45°C 温热舒缓",
+    "badge": "从日常的几分钟开始"
+  }
+}

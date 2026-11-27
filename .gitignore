@@ -1,0 +1,25 @@
+# Generated working media & API artifacts
+work/
+out/
+rendered/
+overlays/
+clips/
+qc/
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.m4a
+
+# Secrets & local env
+.env
+.env.*
+*.key
+
+# Python & OS
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+Thumbs.db

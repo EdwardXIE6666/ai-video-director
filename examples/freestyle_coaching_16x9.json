@@ -1,0 +1,183 @@
+{
+  "project": "freestyle_coaching_16x9",
+  "aspect_ratio": "16:9",
+  "width": 1280,
+  "height": 720,
+  "fps": 24,
+  "theme": "tech",
+  "max_budget_usd": 2.50,
+  "image_size": "2K",
+  "video_model": "gemini-omni-1.2-flash",
+  "vlm_qc_model": "gemini-3.5-flash-lite",
+  "qc": {
+    "min_pass_score": 8.5,
+    "min_dim_score": 7
+  },
+  "crossfade_sec": 0.40,
+  "keep_clip_ambient_volume": 0.16,
+  "show_chapter_bar": true,
+  "tts": {
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Charon",
+    "language": "zh-CN",
+    "tempo": 1.22,
+    "style": "Warm, calm, authoritative Mandarin Chinese swimming coach."
+  },
+  "shots": [
+    {
+      "id": "shot1",
+      "tier": "hero",
+      "chapter_short": "01 流线姿态",
+      "keyframe_filename": "key1_surface_streamline.jpg",
+      "keyframe_prompt": "Photorealistic Olympic swimming coaching photography, 50/50 over-under split-level waterline side view in a bright sunlit indoor pool. Athletic East Asian male swimmer in black swim cap, blue racing goggles, dark navy jammers floating HIGH AT THE VERY SURFACE (crown, upper back, hips, heels hugging waterline, NOT deep underwater), neutral head looking straight down, left arm extended forward beneath surface, right arm high-elbow above-water recovery, 16:9, no text.",
+      "narration": "自由泳想游得快又省力，先抓住四个核心细节。第一，保持身体高位水平贴在水面，从头顶、后背到脚跟尽量成一条直线，眼睛自然看池底，千万不要抬头。",
+      "video_duration": 5,
+      "freeze_at_sec": 1.8,
+      "slow_factor": 2.05,
+      "lead_in": 0.25,
+      "tail_pad": 0.45,
+      "camera": {"framing": "WS_side", "angle": "50/50 split-level waterline", "movement": "smooth lateral tracking right to left"},
+      "beat_timeline": [
+        {"t": "0-2.5s", "action": "Swimmer glides high along the waterline with neutral head looking down at pool floor while right arm completes high-elbow above-water recovery"},
+        {"t": "2.5-5s", "action": "Right hand enters cleanly ahead of shoulder into long forward glide beneath the surface while hips and heels remain high at waterline"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Swimmer MUST stay high RIGHT AT the 50/50 waterline (crown, upper back, hips, heels hugging surface), NEVER sinking deep underwater",
+        "Neutral head looking down, narrow pointed-toe kick, realistic water physics",
+        "Strictly NO text or labels in generated frames"
+      ],
+      "callouts": [
+        {
+          "during_freeze": true,
+          "title": "01 高位流线型姿态",
+          "bullets": ["头顶 · 后背 · 髋部 · 脚跟紧贴水面", "眼睛垂直看池底，切忌抬头导致沉腿"],
+          "markers": [
+            {"type": "hline", "y": 352, "label": "水平基准：全身紧贴水面线", "lx": 56, "ly": 318}
+          ]
+        }
+      ],
+      "subtitles": [
+        "自由泳想游得快又省力，先抓住四个核心细节",
+        "第一，保持身体高位水平贴在水面",
+        "从头顶、后背到脚跟成一直线，眼睛看池底不抬头"
+      ]
+    },
+    {
+      "id": "shot2",
+      "tier": "hero",
+      "chapter_short": "02 高肘抱水",
+      "keyframe_filename": "key2_high_elbow_catch.jpg",
+      "keyframe_prompt": "Photorealistic underwater front-three-quarter closeup in a bright sunlit indoor pool looking slightly upward toward the rippling water surface immediately above the swimmer's back. Same athletic male swimmer in black cap, blue goggles, navy jammers floating high near surface demonstrating textbook Early Vertical Forearm (EVF) high-elbow catch: elbow anchored high near surface bent ~95 degrees with forearm and flat palm pointing vertically straight down like a paddle, 16:9, no text.",
+      "narration": "第二，高肘抱水是推进力的关键。手臂入水前伸后，手肘稳稳架在高位弯曲，让前臂和手掌垂直向后抱住水，一路加速推到大腿旁，不要直臂往下压水。",
+      "video_duration": 5,
+      "freeze_at_sec": 0.30,
+      "slow_factor": 2.05,
+      "lead_in": 0.25,
+      "tail_pad": 0.45,
+      "camera": {"framing": "MCU", "angle": "underwater front-3/4 slightly upward", "movement": "steady close tracking"},
+      "beat_timeline": [
+        {"t": "0-2.5s", "action": "Elbow anchors HIGH near the surface bent ~95 degrees with forearm and flat palm pointing vertically straight down (Early Vertical Forearm catch)"},
+        {"t": "2.5-5s", "action": "Forearm and palm press straight backward past torso accelerating to thigh while opposite arm extends forward near surface"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Body stays immediately beneath the bright rippling water surface",
+        "Clear ~95-degree high-elbow bend, NEVER dropping elbow or straight-arm pressing down",
+        "Strictly NO extra limbs or generated text"
+      ],
+      "callouts": [
+        {
+          "during_freeze": true,
+          "title": "02 高肘抱水与推水（EVF）",
+          "bullets": ["手肘高位固定弯曲（约 90°–110°）", "小臂与手掌垂直向后如船桨抱水推水"],
+          "markers": [
+            {"type": "circle", "x": 715, "y": 225, "r": 28, "color": "amber", "label": "高位曲肘锚点 ~95°", "lx": 760, "ly": 236},
+            {"type": "line", "x1": 695, "y1": 249, "x2": 630, "y2": 430, "label": "小臂垂直向后抓水", "lx": 450, "ly": 412}
+          ]
+        }
+      ],
+      "subtitles": [
+        "第二，高肘抱水是推进力的关键",
+        "手臂前伸后手肘架在高位弯曲，前臂垂直向后抓水",
+        "沿身体中线加速推到大腿旁，忌直臂下压"
+      ]
+    },
+    {
+      "id": "shot3",
+      "tier": "hero",
+      "chapter_short": "03 转肩换气",
+      "keyframe_filename": "key3_surface_side_breath.jpg",
+      "keyframe_prompt": "Low water-level half-above-water front-side closeup in a bright sunlit indoor pool. Same swimmer rolling shoulders cleanly along spine axis to take a calm low side breath in the bow-wave trough: lower goggle resting right ON the water surface, mouth just clearing surface (head NOT lifted up), opposite arm in high-elbow above-water recovery, 16:9, no text.",
+      "narration": "第三，换气靠核心转肩，绝对不要抬头。随着划臂沿脊柱中轴自然转动双肩，顺势侧头贴着水面波谷吸气，一只泳镜留在水面附近，吸完立刻流畅回正。",
+      "video_duration": 5,
+      "freeze_at_sec": 0.12,
+      "slow_factor": 2.05,
+      "lead_in": 0.25,
+      "tail_pad": 0.45,
+      "camera": {"framing": "MCU", "angle": "low water-surface front-side", "movement": "smooth surface-level tracking"},
+      "beat_timeline": [
+        {"t": "0-2s", "action": "Swimmer completes calm side breath in bow-wave trough with lower goggle resting right on waterline while top arm recovers high"},
+        {"t": "2-5s", "action": "Smoothly rotates face straight back down into water along spine axis as recovering hand enters cleanly forward"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Half-above-water surface view; head NEVER lifts upward forward",
+        "Smooth shoulder roll along straight spine axis",
+        "Strictly NO text or face distortion"
+      ],
+      "callouts": [
+        {
+          "during_freeze": true,
+          "title": "03 核心转肩与贴水换气",
+          "bullets": ["随划臂绕脊柱中轴自然转肩，不抬头", "嘴角贴水面波谷吸气，下侧泳镜贴水"],
+          "markers": [
+            {"type": "hline", "y": 435},
+            {"type": "circle", "x": 595, "y": 385, "r": 48, "color": "amber", "label": "贴水波谷侧吸 · 下侧泳镜不离水", "lx": 56, "ly": 336}
+          ]
+        }
+      ],
+      "subtitles": [
+        "第三，换气靠核心转肩，绝对不要抬头",
+        "随划臂沿脊柱中轴自然转肩，贴水面波谷侧吸",
+        "下侧泳镜贴近水面，吸完立刻流畅回正入水"
+      ]
+    },
+    {
+      "id": "shot4",
+      "tier": "hero",
+      "chapter_short": "04 髋部打腿",
+      "keyframe_filename": "key4_hip_flutter_kick.jpg",
+      "keyframe_prompt": "50/50 split-level waterline rear-three-quarter medium closeup in a bright sunlit indoor pool focusing on the same swimmer's hips, legs, and feet riding high RIGHT AT the waterline: straight extended thighs, minimal natural knee bend, relaxed plantar-flexed ankles with pointed toes breaking the water surface into neat fine white foam, 16:9, no text.",
+      "narration": "第四，打腿从髋部发力，大腿带动小腿，膝盖微弯、脚踝放松绷直，脚跟刚好贴着水面打出细腻水花。把这四个细节连贯起来，你的自由泳就会轻松又高效。",
+      "video_duration": 5,
+      "freeze_at_sec": 1.6,
+      "slow_factor": 2.05,
+      "lead_in": 0.25,
+      "tail_pad": 0.45,
+      "camera": {"framing": "MCU", "angle": "50/50 split-level rear-3/4", "movement": "steady rear-side follow"},
+      "beat_timeline": [
+        {"t": "0-2.5s", "action": "Hips and heels ride high right at waterline performing narrow rhythmic hip-driven flutter kicks with straight thighs"},
+        {"t": "2.5-5s", "action": "Loose plantar-flexed ankles whip gently with heels breaking surface into neat fine white foam trail"}
+      ],
+      "physics_and_fidelity_constraints": [
+        "Hips and heels stay high at waterline; NO deep bicycle knee bending",
+        "Pointed relaxed toes and fine neat surface bubbles",
+        "Strictly NO generated text"
+      ],
+      "callouts": [
+        {
+          "during_freeze": true,
+          "title": "04 髋部发力打腿与节奏",
+          "bullets": ["髋部发力大腿带动，忌大幅度屈膝蹬水", "脚踝放松绷直，脚跟贴水打细密白花"],
+          "markers": [
+            {"type": "circle", "x": 720, "y": 315, "r": 22, "color": "amber", "label": "髋部发力 · 大腿带动", "lx": 515, "ly": 227},
+            {"type": "line", "x1": 720, "y1": 315, "x2": 275, "y2": 470, "label": "脚踝放松绷直 · 贴水小幅打腿", "lx": 142, "ly": 487}
+          ]
+        }
+      ],
+      "subtitles": [
+        "第四，打腿从髋部发力，大腿带动小腿",
+        "膝盖微弯、脚踝放松绷直，脚跟贴水打出细密水花",
+        "将四个细节连贯配合，自由泳就会轻松又高效"
+      ]
+    }
+  ]
+}
