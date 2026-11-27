@@ -35,7 +35,10 @@ Check all 8 required items whenever a user requests a video. If any core item is
 5. **Physics / Domain / Product Fidelity Rules**: What must be 100% accurate (e.g., waterline height, anatomical joint angles, exact product silhouette/colors) and what mistakes are forbidden.
 6. **Second-by-Second AV Shotlist**: Every 3–7s shot must specify timecode, camera framing/movement, 1–2s `beat_timeline`, synced VO line, music cue, callout safe zone, and `tier` (`standard` vs. `hero`). Use [references/av-script-template.md](references/av-script-template.md).
 7. **Audio & Music Plan**: Narrator voice/tone/pace, BGM progression, whether to preserve clip ambient SFX.
-8. **Budget Strategy & Ceiling**: Default to **Draft-First (`360p` @ ~$0.023/s) → Hero-Only HD Upgrade (`720p/1080p`)**, with an explicit `max_budget_usd`.
+8. **Budget Strategy & Ceiling**: Default to **Cost-First Production** with an explicit `max_budget_usd`:
+   - On AI Studio: **Draft-First (`360p` @ ~$0.023/s) → Hero-Only HD Upgrade (`720p/1080p`)**.
+   - On Vertex AI (`--backend vertex`): default to **`veo-3.1-lite-generate-001` ($0.05/s @ 720p)** with **4s clips + local FFmpeg tempo stretch**; reserve `veo-3.1-fast-generate-001` ($0.10/s) only for complex human interaction hero shots via per-shot `"vertex_video_model"`.
+   - For static product hero shots, title cards, or calm outros, use `"motion": "static_ken_burns"` (or `"static_zoom_out"`) for **`$0` local FFmpeg HD smooth push-in/pull-out** from a crisp keyframe.
 
 > **Knowledge & SOTA Rule**: Whenever encountering an unfamiliar technical domain, rendering technique, or workflow bottleneck, search the web / GitHub for current state-of-the-art open-source practices first before designing or coding.
 

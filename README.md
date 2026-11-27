@@ -73,7 +73,8 @@ python video_flow.py --config examples/product_ad_9x16.json --stage all --res 36
 # 4. After reviewing the draft, upgrade ONLY tier="hero" shots to 720p and re-assemble
 python video_flow.py --config examples/product_ad_9x16.json --stage upgrade_hero --res 720p --tag final_hd
 
-# 4b. Or upgrade hero shots on Google Cloud Vertex AI (Veo 3.1, uses GCP Free Credits / Billing)
+# 4b. Or upgrade hero shots on Google Cloud Vertex AI (defaults to Veo 3.1 Lite @ $0.05/s; override per-shot with vertex_video_model="veo-3.1-fast-generate-001")
+# Tip: set "motion": "static_ken_burns" (or "static_zoom_out") on product/outro shots for $0 local HD smooth push-in/pull-out
 # Requires: pip install google-genai, GOOGLE_CLOUD_PROJECT, and GOOGLE_APPLICATION_CREDENTIALS (Service Account JSON)
 python video_flow.py --config examples/product_ad_9x16.json --stage upgrade_hero --backend vertex --res 720p --tag final_hd_veo
 

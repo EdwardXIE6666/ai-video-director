@@ -36,11 +36,18 @@ PRICE = {
 }
 
 # Vertex AI Veo 3.1 silent (generate_audio=False) pricing (USD per second)
+DEFAULT_VERTEX_VIDEO_MODEL = "veo-3.1-lite-generate-001"
 VERTEX_VIDEO_PRICE_PER_SEC = {
     "veo-3.1-lite-generate-001": 0.05,
     "veo-3.1-fast-generate-001": 0.10,
     "veo-3.1-generate-001": 0.40,
 }
+
+STATIC_MOTION_MODES = {"static_ken_burns", "static_zoom_in", "static_zoom_out"}
+
+
+def is_static_motion(shot: dict) -> bool:
+    return (shot.get("motion") or "").strip().lower() in STATIC_MOTION_MODES
 
 VTOK_PER_SEC = {
     "360p": 1931,
@@ -252,7 +259,7 @@ def veo_duration(dur_s: int) -> int:
 
 
 def vertex_video_rate(model: str) -> float:
-    return VERTEX_VIDEO_PRICE_PER_SEC.get(model, 0.10)
+    return VERTEX_VIDEO_PRICE_PER_SEC.get(model, 0.05)
 
 
 def get_vertex_client(cfg: dict):
@@ -277,8 +284,11 @@ def compute_current_cost(cfg: dict, dirs: dict) -> tuple[float, float, float, li
             d = json.loads(mp.read_text(encoding="utf-8"))
             res = d.get("resolution", "?")
             dur = d.get("requested_duration", shot.get("video_duration", 5))
+            if d.get("backend") == "local_ken_burns":
+                vid_rows.append(f"  - {sid:16s} [{shot.get('tier','?'):8s}] {dur}s @ {res:5s} | local/ken_burns -> $0.0000")
+                continue
             if d.get("backend") == "vertex":
-                vmodel = d.get("model", cfg.get("vertex_video_model", "veo-3.1-fast-generate-001"))
+                vmodel = d.get("model", shot.get("vertex_video_model") or cfg.get("vertex_video_model", DEFAULT_VERTEX_VIDEO_MODEL))
                 c = float(d.get("cost_usd", dur * vertex_video_rate(vmodel)))
                 vid_cost += c
                 vid_rows.append(f"  - {sid:16s} [{shot.get('tier','?'):8s}] {dur}s @ {res:5s} | vertex/{vmodel} -> ${c:.4f}")
@@ -315,15 +325,16 @@ def compute_current_cost(cfg: dict, dirs: dict) -> tuple[float, float, float, li
 
 
 def check_budget_guard(cfg: dict, dirs: dict, pending_shots: list[dict], resolution: str, force: bool, ignore_budget: bool, backend: str = "ai_studio"):
-    to_gen = [s for s in pending_shots if force or not (dirs["clips"] / f"{s['id']}.mp4").exists()]
+    to_gen = [s for s in pending_shots if (not is_static_motion(s)) and (force or not (dirs["clips"] / f"{s['id']}.mp4").exists())]
     if not to_gen:
         return
     vid_c, img_c, tts_c, _ = compute_current_cost(cfg, dirs)
     spent = vid_c + img_c + tts_c
     if backend == "vertex":
-        vmodel = cfg.get("vertex_video_model", "veo-3.1-fast-generate-001")
-        rate = vertex_video_rate(vmodel)
-        est_add = sum(veo_duration(int(s.get("video_duration", 5))) * rate for s in to_gen)
+        est_add = sum(
+            veo_duration(int(s.get("video_duration", 4))) * vertex_video_rate(s.get("vertex_video_model") or cfg.get("vertex_video_model", DEFAULT_VERTEX_VIDEO_MODEL))
+            for s in to_gen
+        )
     else:
         est_add = sum((int(s.get("video_duration", 5)) * VTOK_PER_SEC[resolution] * PRICE["omni_video"] / 1e6 + 0.01) for s in to_gen)
     projected = spent + est_add
@@ -528,7 +539,52 @@ def stage_qc_keys(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_g
         raise SystemExit(4)
 
 
-def gen_video_vertex(shot: dict, cfg: dict, dirs: dict, resolution: str, force: bool) -> tuple[str, bool, str]:
+def gen_video_ken_burns(shot: dict, cfg: dict, dirs: dict, force: bool) -> tuple[str, bool, str]:
+    """Zero-cost local HD smooth push-in / pull-out motion from a static keyframe."""
+    sid = shot["id"]
+    out_mp4 = dirs["clips"] / f"{sid}.mp4"
+    meta_json = dirs["clips"] / f"{sid}.json"
+    if out_mp4.exists() and not force:
+        return (sid, True, "cached")
+    kf = get_shot_keyframe(shot, dirs)
+    w, h = canvas_size(cfg)
+    fps = int(cfg.get("fps", 24))
+    dur_s = float(shot.get("video_duration", cfg.get("default_video_duration", 4)))
+    nframes = max(1, int(round(dur_s * fps)))
+    motion = (shot.get("motion") or "static_ken_burns").strip().lower()
+    zoom_expr = (
+        f"max(1.0,1.08-0.08*on/{nframes})"
+        if motion == "static_zoom_out"
+        else f"min(1.08,1.0+0.08*on/{nframes})"
+    )
+    vf = (
+        f"scale={w * 2}:{h * 2}:force_original_aspect_ratio=increase,"
+        f"crop={w * 2}:{h * 2},"
+        f"zoompan=z='{zoom_expr}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={nframes}:s={w}x{h}:fps={fps},"
+        f"format=yuv420p"
+    )
+    cmd = [
+        "ffmpeg", "-y", "-i", str(kf),
+        "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+        "-t", f"{dur_s:.3f}", "-vf", vf,
+        "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k", "-shortest", str(out_mp4),
+    ]
+    p = subprocess.run(cmd, capture_output=True, text=True)
+    if p.returncode != 0:
+        return (sid, False, p.stderr[-1200:])
+    info = {
+        "backend": "local_ken_burns",
+        "motion": motion,
+        "resolution": f"{w}x{h}",
+        "requested_duration": dur_s,
+        "cost_usd": 0.0,
+    }
+    meta_json.write_text(json.dumps(info, indent=2, ensure_ascii=False), encoding="utf-8")
+    return (sid, True, f"{w}x{h} | local/{motion} | $0.00")
+
+
+def gen_video_vertex(shot: dict, cfg: dict, dirs: dict, resolution: str, force: bool, client=None) -> tuple[str, bool, str]:
     from google.genai import types
 
     sid = shot["id"]
@@ -538,9 +594,9 @@ def gen_video_vertex(shot: dict, cfg: dict, dirs: dict, resolution: str, force: 
         return (sid, True, "cached")
 
     aspect = cfg.get("aspect_ratio", "9:16")
-    model = cfg.get("vertex_video_model", "veo-3.1-fast-generate-001")
+    model = shot.get("vertex_video_model") or cfg.get("vertex_video_model", DEFAULT_VERTEX_VIDEO_MODEL)
     eff_res = "720p" if resolution == "360p" else resolution
-    dur_s = veo_duration(int(shot.get("video_duration", cfg.get("default_video_duration", 5))))
+    dur_s = veo_duration(int(shot.get("video_duration", cfg.get("default_video_duration", 4))))
     kf = get_shot_keyframe(shot, dirs)
     prompt = compile_video_prompt(shot, cfg)
 
@@ -555,12 +611,14 @@ def gen_video_vertex(shot: dict, cfg: dict, dirs: dict, resolution: str, force: 
         config_kwargs["output_gcs_uri"] = cfg["vertex_output_gcs_uri"]
 
     try:
-        client = get_vertex_client(cfg)
+        client = client or get_vertex_client(cfg)
         print(f"[GEN]  {sid} ({dur_s}s @ {eff_res}, vertex/{model})...")
         op = client.models.generate_videos(
             model=model,
-            prompt=prompt,
-            image=types.Image.from_file(location=str(kf)),
+            source=types.GenerateVideosSource(
+                prompt=prompt,
+                image=types.Image.from_file(location=str(kf)),
+            ),
             config=types.GenerateVideosConfig(**config_kwargs),
         )
         deadline = time.time() + 600
@@ -604,17 +662,32 @@ def gen_video_vertex(shot: dict, cfg: dict, dirs: dict, resolution: str, force: 
 
 def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] | None, force: bool, ignore_budget: bool, backend: str = "ai_studio"):
     shots = [s for s in cfg["shots"] if not target_shots or s["id"] in target_shots]
+    static_shots = [s for s in shots if is_static_motion(s)]
+    paid_shots = [s for s in shots if not is_static_motion(s)]
+
+    if static_shots:
+        print(f"\n=== STAGE: video-local ($0 Ken Burns for {len(static_shots)} static shot(s)) ===")
+        for s in static_shots:
+            sid, ok, msg = gen_video_ken_burns(s, cfg, dirs, force)
+            print(f"[{'DONE' if ok else 'FAIL'}] {sid}: {msg}")
+            if not ok:
+                raise RuntimeError(f"Local Ken Burns failed for {sid}: {msg}")
+
+    if not paid_shots:
+        return
+
     eff_res = "720p" if (backend == "vertex" and resolution == "360p") else resolution
     if backend == "vertex" and resolution == "360p":
         print("[INFO] Vertex AI Veo 3.1 minimum resolution is 720p; using 720p.")
-    check_budget_guard(cfg, dirs, shots, eff_res, force, ignore_budget, backend=backend)
+    check_budget_guard(cfg, dirs, paid_shots, eff_res, force, ignore_budget, backend=backend)
     aspect = cfg.get("aspect_ratio", "9:16")
-    model = cfg.get("vertex_video_model", "veo-3.1-fast-generate-001") if backend == "vertex" else cfg.get("video_model", "gemini-omni-1.2-flash")
-    print(f"\n=== STAGE: video ({len(shots)} shot(s) @ {eff_res}, {aspect}, backend={backend}, model={model}) ===")
+    model = cfg.get("vertex_video_model", DEFAULT_VERTEX_VIDEO_MODEL) if backend == "vertex" else cfg.get("video_model", "gemini-omni-1.2-flash")
+    print(f"\n=== STAGE: video ({len(paid_shots)} shot(s) @ {eff_res}, {aspect}, backend={backend}, default_model={model}) ===")
 
     if backend == "vertex":
+        shared_client = get_vertex_client(cfg)
         with ThreadPoolExecutor(max_workers=2) as ex:
-            for f in as_completed([ex.submit(gen_video_vertex, s, cfg, dirs, eff_res, force) for s in shots]):
+            for f in as_completed([ex.submit(gen_video_vertex, s, cfg, dirs, eff_res, force, shared_client) for s in paid_shots]):
                 sid, ok, msg = f.result()
                 print(f"[{'DONE' if ok else 'FAIL'}] {sid}: {msg}")
                 if not ok:
@@ -660,7 +733,7 @@ def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] |
         return (sid, True, f"{resolution} | vtok={(info.get('usage') or {}).get('total_output_tokens', 0)}")
 
     with ThreadPoolExecutor(max_workers=4) as ex:
-        for f in as_completed([ex.submit(gen_one, s) for s in shots]):
+        for f in as_completed([ex.submit(gen_one, s) for s in paid_shots]):
             sid, ok, msg = f.result()
             print(f"[{'DONE' if ok else 'FAIL'}] {sid}: {msg}")
             if not ok:
