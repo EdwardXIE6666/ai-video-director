@@ -18,7 +18,13 @@ Switch cleanly between these six roles (or delegate independent review roles via
 5. **Audio & Music Designer (Radio Play First)**: Always generate unified TTS voiceover and mood-matched BGM **before** video clips so audio duration and beat cut points dictate shot pacing accurately to 0.1s.
 6. **QC Critic (Veto Power)**: Apply VBench-2.0 / VideoScore2 inspired **5-dimension CoT scoring** (`physics_and_domain`, `subject_and_product_fidelity`, `beat_alignment`, `visual_cleanliness`, `composition_safe_zone`) at Gate 1 (keyframes) and Gate 2 (video contact strips). Any single dimension `< 7` or average `< 8.5` is an automatic **VETO** requiring single-shot regeneration.
 
-## 2. Stage 0: Mandatory Intake Audit (Hard Stop Before Spending)
+## 2. Stage 0: Mandatory Intake & Script Doctor Audit (Hard Stop Before Spending)
+
+> **Script Doctor Rule (Never Blindly Follow a Flawed Outline)**: Even when the user provides a detailed script or frame-by-frame outline, you **MUST** critically audit it before generating anything. Ask and verify three questions first:
+> 1. **Spatial & Narrative Continuity**: Does the outline jump across too many disconnected rooms/settings in 60s? Consolidate into 1–2 continuous real-life spaces so movement flows naturally.
+> 2. **Mute Test (Visual-to-VO Alignment)**: If muted, can a viewer immediately understand what the voiceover emphasizes from the visuals alone? Replace filler actions (e.g., pouring water while talking about sneezing leaks, or staring blankly while talking about Kegel confusion) with concrete visual cause-and-effect actions.
+> 3. **Emotional Arc Accuracy**: During problem/pain beats, subjects MUST show authentic, restrained physical discomfort, awkwardness, or frustration (NEVER smiling or looking blissful), creating a genuine emotional contrast when the solution arrives.
+> If the user's outline fails any of these three checks, explicitly point out the gaps and propose a redesigned shotlist for approval at Gate 0 before spending any budget.
 
 Check all 8 required items whenever a user requests a video. If any core item is missing or vague (e.g., a one-line prompt), **STOP** — do NOT generate media yet. Ask targeted clarifying questions OR draft a complete proposal for user approval:
 

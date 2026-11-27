@@ -159,8 +159,9 @@ def compile_video_prompt(shot: dict, cfg: dict) -> str:
     constraints = " ".join(shot["physics_and_fidelity_constraints"])
     amb = (shot.get("audio_sync") or {}).get("ambient_sfx", "subtle realistic natural environment ambience only")
     return (
-        "Use this image as the starting frame. Pure visual motion only: NO dialogue, NO voiceover, "
-        "NO speech, NO on-screen text, NO labels, NO watermark. "
+        "Use this image as the starting frame. In a SINGLE continuous unbroken shot — strictly NO scene cuts, "
+        "NO abrupt framing jumps, NO teleporting furniture or props. Pure visual motion only: NO dialogue, "
+        "NO voiceover, NO speech, NO on-screen text, NO labels, NO floating hologram CGI, NO watermark. "
         f"Aspect ratio {cfg.get('aspect_ratio', '9:16')}. "
         f"Camera: {cam.get('framing', '')}, {cam.get('angle', '')}, {cam.get('movement', '')}. "
         f"Action timeline: {beats} "
@@ -399,10 +400,21 @@ def stage_keyframes(cfg: dict, dirs: dict, target_shots: set[str] | None, force:
 
 # ---------- 5-Dimension CoT VLM Quality Gate (VBench-2.0 / VideoScore2) ----------
 
-def vlm_5d_audit(model: str, image_path: Path, checklist: str, min_avg: float = 8.5, min_dim: int = 7) -> dict:
+def vlm_5d_audit(model: str, image_path: Path, checklist: str, min_avg: float = 8.5, min_dim: int = 7, mode: str = "video_strip") -> dict:
+    if mode == "keyframe":
+        mode_note = (
+            "IMPORTANT: This is a SINGLE STATIC STARTING KEYFRAME (t=0s) before video motion generation. "
+            "For 'beat_alignment', evaluate ONLY whether this starting frame accurately sets up the initial "
+            "pose, subject, setting, and camera framing of the first beat — do NOT penalize it for being a still image."
+        )
+    else:
+        mode_note = (
+            "This is a sequential 3-frame contact strip (early / mid / late frames) extracted from a generated video clip. "
+            "Evaluate temporal continuity, motion progression across beats, physics realism, and visual stability."
+        )
     prompt = (
         "You are a strict commercial film QC critic inspired by VBench-2.0 and VideoScore2. "
-        "Carefully evaluate this image or sequential 3-frame contact strip against the specification. "
+        f"{mode_note} "
         "Score each of the 5 dimensions from 1 to 10 (integers) with concise Chain-of-Thought rationale. "
         "Return ONLY valid JSON with exact schema:\n"
         '{"rationale": "...", "scores": {"physics_and_domain": 1-10, "subject_and_product_fidelity": 1-10, '
@@ -447,7 +459,7 @@ def stage_qc_keys(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_g
     for shot in shots:
         sid = shot["id"]
         kf = get_shot_keyframe(shot, dirs)
-        res = vlm_5d_audit(model, kf, compile_qc_checklist(shot), min_avg, min_dim)
+        res = vlm_5d_audit(model, kf, compile_qc_checklist(shot), min_avg, min_dim, mode="keyframe")
         report[sid] = res
         tag = "PASS" if res["pass"] else "VETO"
         print(f"[{tag}] {sid:14s} avg={res['avg_score']:4.2f} min={res.get('min_dim_score',0)} | {res['rationale'][:120]}")
@@ -472,9 +484,13 @@ def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] |
         if out_mp4.exists() and not force:
             return (sid, True, "cached")
         kf = get_shot_keyframe(shot, dirs)
-        up = subprocess.run(["gemini-api", "files", "upload", str(kf), "--wait"], capture_output=True, text=True)
-        if up.returncode != 0:
-            return (sid, False, f"upload failed: {up.stderr or up.stdout}")
+        up = None
+        for attempt in range(3):
+            up = subprocess.run(["gemini-api", "files", "upload", str(kf), "--wait"], capture_output=True, text=True)
+            if up.returncode == 0:
+                break
+        if not up or up.returncode != 0:
+            return (sid, False, f"upload failed: {up.stderr if up else 'unknown'}")
         uri = up.stdout.strip().splitlines()[-1].strip()
         dur_s = int(shot.get("video_duration", cfg.get("default_video_duration", 5)))
         prompt = compile_video_prompt(shot, cfg)
