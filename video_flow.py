@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -32,6 +33,13 @@ PRICE = {
     "img_thought": 7.50,
     "img_out": 30.00,
     "tts_audio_per_sec": 25 * 9.00 / 1e6,
+}
+
+# Vertex AI Veo 3.1 silent (generate_audio=False) pricing (USD per second)
+VERTEX_VIDEO_PRICE_PER_SEC = {
+    "veo-3.1-lite-generate-001": 0.05,
+    "veo-3.1-fast-generate-001": 0.10,
+    "veo-3.1-generate-001": 0.40,
 }
 
 VTOK_PER_SEC = {
@@ -234,6 +242,31 @@ def stage_validate(cfg: dict) -> list[str]:
 
 # ---------- Budget Calculator & Circuit Breaker ----------
 
+def veo_duration(dur_s: int) -> int:
+    """Map arbitrary shot seconds to Veo 3.1 discrete durations (4, 6, or 8s)."""
+    if dur_s <= 4:
+        return 4
+    if dur_s <= 6:
+        return 6
+    return 8
+
+
+def vertex_video_rate(model: str) -> float:
+    return VERTEX_VIDEO_PRICE_PER_SEC.get(model, 0.10)
+
+
+def get_vertex_client(cfg: dict):
+    try:
+        from google import genai
+    except ImportError as exc:
+        raise RuntimeError("Vertex AI backend requires 'google-genai' (`pip install google-genai`).") from exc
+    project = cfg.get("vertex_project") or os.environ.get("GOOGLE_CLOUD_PROJECT")
+    location = cfg.get("vertex_location") or os.environ.get("GOOGLE_CLOUD_LOCATION") or "us-central1"
+    if not project:
+        raise RuntimeError("Vertex AI backend requires GOOGLE_CLOUD_PROJECT env var or 'vertex_project' in config.")
+    return genai.Client(vertexai=True, project=project, location=location)
+
+
 def compute_current_cost(cfg: dict, dirs: dict) -> tuple[float, float, float, list[str]]:
     vid_cost = img_cost = tts_cost = 0.0
     vid_rows = []
@@ -242,9 +275,15 @@ def compute_current_cost(cfg: dict, dirs: dict) -> tuple[float, float, float, li
         mp = dirs["clips"] / f"{sid}.json"
         if mp.exists():
             d = json.loads(mp.read_text(encoding="utf-8"))
-            u = d.get("usage") or {}
             res = d.get("resolution", "?")
             dur = d.get("requested_duration", shot.get("video_duration", 5))
+            if d.get("backend") == "vertex":
+                vmodel = d.get("model", cfg.get("vertex_video_model", "veo-3.1-fast-generate-001"))
+                c = float(d.get("cost_usd", dur * vertex_video_rate(vmodel)))
+                vid_cost += c
+                vid_rows.append(f"  - {sid:16s} [{shot.get('tier','?'):8s}] {dur}s @ {res:5s} | vertex/{vmodel} -> ${c:.4f}")
+                continue
+            u = d.get("usage") or {}
             vtok = u.get("total_output_tokens", 0)
             note = ""
             if vtok == 0:
@@ -275,16 +314,21 @@ def compute_current_cost(cfg: dict, dirs: dict) -> tuple[float, float, float, li
     return vid_cost, img_cost, tts_cost, vid_rows
 
 
-def check_budget_guard(cfg: dict, dirs: dict, pending_shots: list[dict], resolution: str, force: bool, ignore_budget: bool):
+def check_budget_guard(cfg: dict, dirs: dict, pending_shots: list[dict], resolution: str, force: bool, ignore_budget: bool, backend: str = "ai_studio"):
     to_gen = [s for s in pending_shots if force or not (dirs["clips"] / f"{s['id']}.mp4").exists()]
     if not to_gen:
         return
     vid_c, img_c, tts_c, _ = compute_current_cost(cfg, dirs)
     spent = vid_c + img_c + tts_c
-    est_add = sum((int(s.get("video_duration", 5)) * VTOK_PER_SEC[resolution] * PRICE["omni_video"] / 1e6 + 0.01) for s in to_gen)
+    if backend == "vertex":
+        vmodel = cfg.get("vertex_video_model", "veo-3.1-fast-generate-001")
+        rate = vertex_video_rate(vmodel)
+        est_add = sum(veo_duration(int(s.get("video_duration", 5))) * rate for s in to_gen)
+    else:
+        est_add = sum((int(s.get("video_duration", 5)) * VTOK_PER_SEC[resolution] * PRICE["omni_video"] / 1e6 + 0.01) for s in to_gen)
     projected = spent + est_add
     limit = float(cfg["max_budget_usd"])
-    print(f"[BUDGET] Spent=${spent:.3f} + Projected({len(to_gen)} shots @ {resolution})=${est_add:.3f} => ${projected:.3f} / Limit=${limit:.2f}")
+    print(f"[BUDGET] Spent=${spent:.3f} + Projected({len(to_gen)} shots @ {resolution}, {backend})=${est_add:.3f} => ${projected:.3f} / Limit=${limit:.2f}")
     if projected > limit and not ignore_budget:
         print(f"[BUDGET HALT] Projected total ${projected:.3f} exceeds max_budget_usd=${limit:.2f}.")
         print("Raise 'max_budget_usd' in config, lower --res, target fewer --shots, or pass --ignore-budget.")
@@ -400,7 +444,7 @@ def stage_keyframes(cfg: dict, dirs: dict, target_shots: set[str] | None, force:
 
 # ---------- 5-Dimension CoT VLM Quality Gate (VBench-2.0 / VideoScore2) ----------
 
-def vlm_5d_audit(model: str, image_path: Path, checklist: str, min_avg: float = 8.5, min_dim: int = 7, mode: str = "video_strip") -> dict:
+def vlm_5d_audit(model: str, image_path: Path, checklist: str, min_avg: float = 8.5, min_dim: int = 7, mode: str = "video_strip", backend: str = "ai_studio", cfg: dict | None = None) -> dict:
     if mode == "keyframe":
         mode_note = (
             "IMPORTANT: This is a SINGLE STATIC STARTING KEYFRAME (t=0s) before video motion generation. "
@@ -421,10 +465,23 @@ def vlm_5d_audit(model: str, image_path: Path, checklist: str, min_avg: float = 
         '"beat_alignment": 1-10, "visual_cleanliness": 1-10, "composition_safe_zone": 1-10}, "issues": ["..."]}\n'
         f"Specification: {checklist}"
     )
-    p = subprocess.run(["gemini-api", "analyze", prompt, "-m", model, "-i", str(image_path)], capture_output=True, text=True, encoding="utf-8")
-    raw = (p.stdout or "").strip()
-    if p.returncode != 0:
-        return {"pass": False, "avg_score": 0.0, "scores": {}, "issues": [p.stderr or raw], "rationale": "CLI analyze error"}
+    if backend == "vertex":
+        try:
+            from google.genai import types
+            client = get_vertex_client(cfg or {})
+            mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
+            resp = client.models.generate_content(
+                model=model,
+                contents=[types.Part.from_bytes(data=image_path.read_bytes(), mime_type=mime), prompt],
+            )
+            raw = (resp.text or "").strip()
+        except Exception as exc:
+            return {"pass": False, "avg_score": 0.0, "scores": {}, "issues": [str(exc)], "rationale": "Vertex VLM analyze error"}
+    else:
+        p = subprocess.run(["gemini-api", "analyze", prompt, "-m", model, "-i", str(image_path)], capture_output=True, text=True, encoding="utf-8")
+        raw = (p.stdout or "").strip()
+        if p.returncode != 0:
+            return {"pass": False, "avg_score": 0.0, "scores": {}, "issues": [p.stderr or raw], "rationale": "CLI analyze error"}
     a, b = raw.find("{"), raw.rfind("}")
     data = None
     if a != -1 and b != -1:
@@ -449,17 +506,17 @@ def vlm_5d_audit(model: str, image_path: Path, checklist: str, min_avg: float = 
     }
 
 
-def stage_qc_keys(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_gate: bool = True):
+def stage_qc_keys(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_gate: bool = True, backend: str = "ai_studio"):
     shots = [s for s in cfg["shots"] if not target_shots or s["id"] in target_shots]
-    model = cfg.get("vlm_qc_model", "gemini-3.5-flash-lite")
+    model = cfg.get("vertex_vlm_qc_model", "gemini-2.5-flash") if backend == "vertex" else cfg.get("vlm_qc_model", "gemini-3.5-flash-lite")
     min_avg = float((cfg.get("qc") or {}).get("min_pass_score", 8.5))
     min_dim = int((cfg.get("qc") or {}).get("min_dim_score", 7))
-    print(f"\n=== GATE 1: 5D VLM Keyframe QC (model={model}, pass>=avg {min_avg} & min {min_dim}) ===")
+    print(f"\n=== GATE 1: 5D VLM Keyframe QC (backend={backend}, model={model}, pass>=avg {min_avg} & min {min_dim}) ===")
     report, failed = {}, []
     for shot in shots:
         sid = shot["id"]
         kf = get_shot_keyframe(shot, dirs)
-        res = vlm_5d_audit(model, kf, compile_qc_checklist(shot), min_avg, min_dim, mode="keyframe")
+        res = vlm_5d_audit(model, kf, compile_qc_checklist(shot), min_avg, min_dim, mode="keyframe", backend=backend, cfg=cfg)
         report[sid] = res
         tag = "PASS" if res["pass"] else "VETO"
         print(f"[{tag}] {sid:14s} avg={res['avg_score']:4.2f} min={res.get('min_dim_score',0)} | {res['rationale'][:120]}")
@@ -471,11 +528,98 @@ def stage_qc_keys(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_g
         raise SystemExit(4)
 
 
-def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] | None, force: bool, ignore_budget: bool):
+def gen_video_vertex(shot: dict, cfg: dict, dirs: dict, resolution: str, force: bool) -> tuple[str, bool, str]:
+    from google.genai import types
+
+    sid = shot["id"]
+    out_mp4 = dirs["clips"] / f"{sid}.mp4"
+    meta_json = dirs["clips"] / f"{sid}.json"
+    if out_mp4.exists() and not force:
+        return (sid, True, "cached")
+
+    aspect = cfg.get("aspect_ratio", "9:16")
+    model = cfg.get("vertex_video_model", "veo-3.1-fast-generate-001")
+    eff_res = "720p" if resolution == "360p" else resolution
+    dur_s = veo_duration(int(shot.get("video_duration", cfg.get("default_video_duration", 5))))
+    kf = get_shot_keyframe(shot, dirs)
+    prompt = compile_video_prompt(shot, cfg)
+
+    config_kwargs = {
+        "aspect_ratio": aspect,
+        "resolution": eff_res,
+        "duration_seconds": dur_s,
+        "generate_audio": False,
+        "negative_prompt": "text, watermark, subtitles, floating hologram, distorted hands, extra limbs",
+    }
+    if cfg.get("vertex_output_gcs_uri"):
+        config_kwargs["output_gcs_uri"] = cfg["vertex_output_gcs_uri"]
+
+    try:
+        client = get_vertex_client(cfg)
+        print(f"[GEN]  {sid} ({dur_s}s @ {eff_res}, vertex/{model})...")
+        op = client.models.generate_videos(
+            model=model,
+            prompt=prompt,
+            image=types.Image.from_file(location=str(kf)),
+            config=types.GenerateVideosConfig(**config_kwargs),
+        )
+        deadline = time.time() + 600
+        while not op.done:
+            if time.time() > deadline:
+                return (sid, False, "Vertex AI generate_videos timed out after 600s")
+            time.sleep(10)
+            op = client.operations.get(op)
+        if getattr(op, "error", None):
+            return (sid, False, f"Vertex AI error: {op.error}")
+        res_obj = getattr(op, "response", None) or getattr(op, "result", None)
+        vids = getattr(res_obj, "generated_videos", None) or []
+        if not vids or not vids[0].video:
+            return (sid, False, "Vertex AI returned no generated_videos")
+        vid = vids[0].video
+        if vid.video_bytes:
+            out_mp4.write_bytes(vid.video_bytes)
+        elif vid.uri and vid.uri.startswith("gs://"):
+            try:
+                from google.cloud import storage
+                bucket_name, blob_name = vid.uri[5:].split("/", 1)
+                storage.Client(project=cfg.get("vertex_project") or os.environ.get("GOOGLE_CLOUD_PROJECT")).bucket(bucket_name).blob(blob_name).download_to_filename(str(out_mp4))
+            except Exception as gcs_exc:
+                return (sid, False, f"Video stored at {vid.uri}; install google-cloud-storage or grant read access ({gcs_exc})")
+        else:
+            return (sid, False, "Vertex AI video payload missing both video_bytes and gs:// URI")
+        cost_usd = round(dur_s * vertex_video_rate(model), 4)
+        info = {
+            "backend": "vertex",
+            "model": model,
+            "resolution": eff_res,
+            "requested_duration": dur_s,
+            "cost_usd": cost_usd,
+            "operation_name": getattr(op, "name", None),
+        }
+        meta_json.write_text(json.dumps(info, indent=2, ensure_ascii=False), encoding="utf-8")
+        return (sid, True, f"{eff_res} | vertex/{model} | ${cost_usd:.2f}")
+    except Exception as exc:
+        return (sid, False, str(exc))
+
+
+def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] | None, force: bool, ignore_budget: bool, backend: str = "ai_studio"):
     shots = [s for s in cfg["shots"] if not target_shots or s["id"] in target_shots]
-    check_budget_guard(cfg, dirs, shots, resolution, force, ignore_budget)
-    aspect, model = cfg.get("aspect_ratio", "9:16"), cfg.get("video_model", "gemini-omni-1.2-flash")
-    print(f"\n=== STAGE: video ({len(shots)} shot(s) @ {resolution}, {aspect}) ===")
+    eff_res = "720p" if (backend == "vertex" and resolution == "360p") else resolution
+    if backend == "vertex" and resolution == "360p":
+        print("[INFO] Vertex AI Veo 3.1 minimum resolution is 720p; using 720p.")
+    check_budget_guard(cfg, dirs, shots, eff_res, force, ignore_budget, backend=backend)
+    aspect = cfg.get("aspect_ratio", "9:16")
+    model = cfg.get("vertex_video_model", "veo-3.1-fast-generate-001") if backend == "vertex" else cfg.get("video_model", "gemini-omni-1.2-flash")
+    print(f"\n=== STAGE: video ({len(shots)} shot(s) @ {eff_res}, {aspect}, backend={backend}, model={model}) ===")
+
+    if backend == "vertex":
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            for f in as_completed([ex.submit(gen_video_vertex, s, cfg, dirs, eff_res, force) for s in shots]):
+                sid, ok, msg = f.result()
+                print(f"[{'DONE' if ok else 'FAIL'}] {sid}: {msg}")
+                if not ok:
+                    raise RuntimeError(f"Video failed for {sid}: {msg}")
+        return
 
     def gen_one(shot):
         sid = shot["id"]
@@ -508,6 +652,7 @@ def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] |
         if p.returncode != 0:
             return (sid, False, p.stderr or p.stdout)
         info = json.loads(p.stdout)
+        info["backend"] = "ai_studio"
         info["resolution"] = resolution
         info["requested_duration"] = dur_s
         info["usage"] = fetch_usage(info.get("response_id"))
@@ -522,12 +667,12 @@ def stage_video(cfg: dict, dirs: dict, resolution: str, target_shots: set[str] |
                 raise RuntimeError(f"Video failed for {sid}: {msg}")
 
 
-def stage_qc_video(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_gate: bool = True):
+def stage_qc_video(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_gate: bool = True, backend: str = "ai_studio"):
     shots = [s for s in cfg["shots"] if not target_shots or s["id"] in target_shots]
-    model = cfg.get("vlm_qc_model", "gemini-3.5-flash-lite")
+    model = cfg.get("vertex_vlm_qc_model", "gemini-2.5-flash") if backend == "vertex" else cfg.get("vlm_qc_model", "gemini-3.5-flash-lite")
     min_avg = float((cfg.get("qc") or {}).get("min_pass_score", 8.5))
     min_dim = int((cfg.get("qc") or {}).get("min_dim_score", 7))
-    print(f"\n=== GATE 2: 5D VLM Video QC ({len(shots)} shot(s), pass>=avg {min_avg} & min {min_dim}) ===")
+    print(f"\n=== GATE 2: 5D VLM Video QC ({len(shots)} shot(s), backend={backend}, model={model}, pass>=avg {min_avg} & min {min_dim}) ===")
     report, failed = {}, []
     for shot in shots:
         sid = shot["id"]
@@ -540,7 +685,7 @@ def stage_qc_video(cfg: dict, dirs: dict, target_shots: set[str] | None, strict_
             strips.append(fp)
         strip_jpg = dirs["qc"] / f"{sid}_strip.jpg"
         subprocess.run(["ffmpeg", "-y", "-i", str(strips[0]), "-i", str(strips[1]), "-i", str(strips[2]), "-filter_complex", "[0:v][1:v][2:v]hstack=inputs=3[v]", "-map", "[v]", str(strip_jpg)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-        res = vlm_5d_audit(model, strip_jpg, compile_qc_checklist(shot), min_avg, min_dim)
+        res = vlm_5d_audit(model, strip_jpg, compile_qc_checklist(shot), min_avg, min_dim, backend=backend, cfg=cfg)
         report[sid] = {"duration": round(dur, 2), **res}
         tag = "PASS" if res["pass"] else "VETO"
         print(f"[{tag}] {sid:14s} ({dur:.2f}s) avg={res['avg_score']:4.2f} min={res.get('min_dim_score',0)} | {res['rationale'][:120]}")
@@ -851,6 +996,7 @@ def main():
     ap = argparse.ArgumentParser(description="AI Video Director — Quality-gated low-cost AI video production engine")
     ap.add_argument("--config", required=True, help="Path to strict project JSON storyboard")
     ap.add_argument("--stage", choices=["validate", "assets", "audio", "keyframes", "qc_keys", "video", "qc_video", "assemble", "upgrade_hero", "cost", "all"], default="all")
+    ap.add_argument("--backend", choices=["ai_studio", "vertex"], default=None, help="Video & VLM QC backend: ai_studio (Gemini Omni 1.2 Flash) or vertex (GCP Vertex AI Veo 3.1)")
     ap.add_argument("--res", choices=["360p", "720p", "1080p"], default="360p", help="Video resolution (default 360p draft; upgrade_hero defaults to 720p)")
     ap.add_argument("--shots", default="", help="Comma-separated shot IDs to target")
     ap.add_argument("--tag", default="final", help="Output filename tag")
@@ -862,6 +1008,7 @@ def main():
     cfg_path = Path(args.config).resolve()
     cfg = load_cfg(cfg_path)
     dirs = resolve_dirs(cfg, cfg_path)
+    backend = args.backend or cfg.get("video_backend", "ai_studio")
     target = {x.strip() for x in args.shots.split(",") if x.strip()} if args.shots else None
     strict_qc = not args.no_strict_qc
 
@@ -876,8 +1023,8 @@ def main():
             print("No shots marked tier='hero' in config.")
             return
         up_res = "720p" if args.res == "360p" else args.res
-        stage_video(cfg, dirs, up_res, hero_ids, force=True, ignore_budget=args.ignore_budget)
-        stage_qc_video(cfg, dirs, hero_ids, strict_gate=strict_qc)
+        stage_video(cfg, dirs, up_res, hero_ids, force=True, ignore_budget=args.ignore_budget, backend=backend)
+        stage_qc_video(cfg, dirs, hero_ids, strict_gate=strict_qc, backend=backend)
         stage_assemble(cfg, dirs, args.tag)
         stage_cost(cfg, dirs)
         return
@@ -892,11 +1039,11 @@ def main():
         elif st == "keyframes":
             stage_keyframes(cfg, dirs, target, args.force)
         elif st == "qc_keys":
-            stage_qc_keys(cfg, dirs, target, strict_gate=strict_qc)
+            stage_qc_keys(cfg, dirs, target, strict_gate=strict_qc, backend=backend)
         elif st == "video":
-            stage_video(cfg, dirs, args.res, target, args.force, args.ignore_budget)
+            stage_video(cfg, dirs, args.res, target, args.force, args.ignore_budget, backend=backend)
         elif st == "qc_video":
-            stage_qc_video(cfg, dirs, target, strict_gate=strict_qc)
+            stage_qc_video(cfg, dirs, target, strict_gate=strict_qc, backend=backend)
         elif st == "assemble":
             stage_assemble(cfg, dirs, args.tag)
         elif st == "cost":

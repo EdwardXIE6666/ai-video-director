@@ -73,6 +73,10 @@ python video_flow.py --config examples/product_ad_9x16.json --stage all --res 36
 # 4. 初稿审定后，一键只把 tier="hero" 的核心镜头升级为 720p 并自动重渲终片
 python video_flow.py --config examples/product_ad_9x16.json --stage upgrade_hero --res 720p --tag final_hd
 
+# 4b. 或切换至 Google Cloud Vertex AI（Veo 3.1，可直接抵扣 GCP $300 试用赠金）升级高清 Hero 镜头
+# 需配置：pip install google-genai、GOOGLE_CLOUD_PROJECT 与 GOOGLE_APPLICATION_CREDENTIALS（服务账号 JSON）
+python video_flow.py --config examples/product_ad_9x16.json --stage upgrade_hero --backend vertex --res 720p --tag final_hd_veo
+
 # 5. 调整字幕、标语位置、语速或结尾定格卡后，本机 $0 秒速重渲
 python video_flow.py --config examples/product_ad_9x16.json --stage assemble --tag final_v2
 

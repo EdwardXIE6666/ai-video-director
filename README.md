@@ -73,6 +73,10 @@ python video_flow.py --config examples/product_ad_9x16.json --stage all --res 36
 # 4. After reviewing the draft, upgrade ONLY tier="hero" shots to 720p and re-assemble
 python video_flow.py --config examples/product_ad_9x16.json --stage upgrade_hero --res 720p --tag final_hd
 
+# 4b. Or upgrade hero shots on Google Cloud Vertex AI (Veo 3.1, uses GCP Free Credits / Billing)
+# Requires: pip install google-genai, GOOGLE_CLOUD_PROJECT, and GOOGLE_APPLICATION_CREDENTIALS (Service Account JSON)
+python video_flow.py --config examples/product_ad_9x16.json --stage upgrade_hero --backend vertex --res 720p --tag final_hd_veo
+
 # 5. Zero-cost re-render after tweaking subtitles, callouts, tempo, or endcard
 python video_flow.py --config examples/product_ad_9x16.json --stage assemble --tag final_v2
 
