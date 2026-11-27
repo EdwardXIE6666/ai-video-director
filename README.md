@@ -1,5 +1,7 @@
 # AI Video Director (`ai-video-director`)
 
+**English** | [简体中文](README_CN.md)
+
 An industrial, low-cost, quality-gated AI video production framework and Agent Skill for **9:16 vertical commercials** and **16:9 horizontal explainers/coaching videos**.
 
 Stop treating AI video generation like an expensive slot machine. **AI Video Director** decouples planning, audio, visual anchors, motion generation, quality control, and final composition—cutting 60-second production costs by **65%–85%** while enforcing strict physics, anatomy, and product fidelity.
