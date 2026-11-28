@@ -3,6 +3,7 @@
 > Synthesized from:
 > - **Google Cloud Vertex AI Official Veo 3.1 Prompting Guide** (5-layer cinematography syntax, I2V motion focus, native negative prompts)
 > - **`jnMetaCode/ai-shortfilm-prompts`** (5-stage skeleton, realism-via-imperfection, camera+lens lookup, breathing camera line, restrained endings)
+> - **`dexhunter/seedance2-skill`** (explicit reference-role binding, advanced camera choreography, product deconstruction/light-sweep templates, before-vs-after mechanism lighting shifts, 6 prompt anti-patterns)
 > - **`geekjourneyx/awesome-ai-video-prompts`** & structured JSON cinematography schemas
 
 Use this playbook in **Stage 0** to transform rough user ideas into **director-grade Keyframe + Image-to-Video prompts** before spending a single cent.
@@ -85,15 +86,40 @@ Do **NOT** copy-paste the same paragraph into both `keyframe_prompt` and `video_
 - **Motion Beats (4s or `$0 static_ken_burns`)**:
   `Slow luxurious dolly push-in gliding smoothly across [SURFACE_TEXTURE] toward [HERO_DETAIL]; subtle realistic [LIGHT_OR_THERMAL_CUE] blooms gently without sci-fi glare or smoke.`
 
-### Template D: Medical / Technical 3D Mechanism Explainer
+### Template D: Medical / Technical 3D Mechanism Explainer (Before-vs-After Progression)
 - **Keyframe**:
   `Clean 3D medical educational studio render on pure crisp white background, elevated 3/4 view, soft diffused clinical lighting, semi-translucent frosted [ANATOMY_STRUCTURE] with color-coded pastel [KEY_PARTS], razor-clean edges, [ASPECT_RATIO], strictly zero text, arrows, or labels.`
 - **Motion Beats (6s–8s)**:
-  `Slow smooth continuous orbital drift. [0-3.5s] [NORMAL_HEALTHY_MECHANISM_MOTION]. [3.5-7s] Clear gradual visual transition to [WEAKENED_OR_PROBLEM_STATE] illustrating exact cause-and-effect without mesh morphing artifacts.`
+  `Slow smooth continuous orbital drift. [0-3.5s] [NORMAL_HEALTHY_MECHANISM_MOTION] under clean bright clinical light. [3.5-7s] Clear gradual visual transition to [WEAKENED_OR_PROBLEM_STATE] as lighting subtly shifts slightly cooler/dimmer to highlight contrast without mesh morphing artifacts.`
+
+### Template E: E-Commerce Product Deconstruction & Light-Sweep Hero (From Seedance 2.0)
+- **Keyframe**:
+  `Studio commercial product hero of exact 1:1 [PRODUCT_ANCHOR] centered on clean matte surface, 100mm macro lens, controlled directional softbox key light + sharp specular rim light, [ASPECT_RATIO], zero text.`
+- **Motion Beats (4s–6s)**:
+  `Locked-off robotic-arm precision camera. [0-2s] Product smoothly elevates slightly and performs a crisp controlled rotation while a soft studio light sweep glides cleanly across its matte surface texture and signature contours. [2-4s] Key functional layers/components gently separate vertically in precise alignment (preserving exact proportions, zero floating chaos) before settling seamlessly back together.`
 
 ---
 
-## 4. Dedicated `negative_prompt` Formula (Veo 3.1 / Vertex AI)
+## 4. Explicit Reference-Role Binding & Advanced Camera Choreography
+
+### Reference-Role Binding Rule (Zero Orphan or Ambiguous Inputs)
+Whenever passing multiple reference assets (`keyframe_refs`, Seedance `@图片1/@视频1`, or Veo Ingredients Mode), **explicitly assign one clear role per asset** — never write a vague *"use these references"*:
+- `Reference 1` → **Subject identity & wardrobe only**
+- `Reference 2` → **1:1 product geometry, colors & surface texture only**
+- `Reference 3` → **Room architecture & lighting continuity only**
+
+### Advanced Camera Movement Palette
+| Technique | Best Commercial / Narrative Moment | Prompt Cue |
+|---|---|---|
+| **Robotic-Arm Follow (机械臂跟随)** | Luxury product showcase, sleek macro reveal | `Smooth robotic-arm precision arc gliding cleanly around the product contour` |
+| **Dolly Zoom / Vertigo (希区柯克变焦)** | Sudden realization, sharp pain-point shock | `Subtle dolly-in while widening perspective slightly to heighten sudden tension` |
+| **Whip Pan (快速摇镜)** | Energetic beat switch, before-to-after rhythm | `Crisp motivated horizontal whip-pan with natural motion blur` |
+| **Foreground Occlusion One-Take (前景遮挡一镜到底)** | Seamless spatial transition without hard cuts | `Single unbroken tracking take as foreground architecture glides smoothly past lens` |
+| **Micro-Beat Physical Acting (微动作情绪转折)** | Replacing vague emotion words ("shocked/sad") | Describe observable physics: `knitted brow, breath catches, fingers tighten slightly, shoulders drop in quiet exhale` |
+
+---
+
+## 5. Dedicated `negative_prompt` Formula (Veo 3.1 / Vertex AI)
 
 In dedicated `negative_prompt` fields, list **positive defect nouns separated by commas** (do NOT write `"no"` or `"don't"` prefixes):
 
@@ -103,12 +129,12 @@ blurry, low resolution, watermark, text overlay, subtitles, garbled letters, flo
 
 ---
 
-## 5. Stage 0 Pre-Approval Prompt Checklist (Run Before Gate 0)
+## 6. Stage 0 Pre-Approval Prompt Audit & 6 Anti-Patterns (Run Before Gate 0)
 
-- [ ] Zero vague praise words (`stunning`, `cinematic`, `4K`, `masterpiece`, `epic`)
-- [ ] Every shot specifies concrete **camera + lens + light direction**
-- [ ] Every human/lifestyle shot includes **≥2 realistic imperfections / living background cues**
-- [ ] Keyframe prompt describes static `t=0s` truth; video prompt describes **delta motion beats**
-- [ ] Pain/problem shots explicitly forbid generic smiles and specify authentic micro-expressions
-- [ ] Single-shot continuity lock + breathing camera cue + decoupled audio lock included
-- [ ] Ending of each shot is quiet and restrained (no visual FX pile-up)
+- [ ] **No empty praise words**: zero `stunning`, `cinematic`, `4K`, `masterpiece`, `epic`
+- [ ] **No ambiguous/orphan references**: every uploaded image has an explicit role binding
+- [ ] **No conflicting camera moves**: never mix "static locked-off camera" with "360° orbit" in one shot
+- [ ] **No duration overload**: a 4–5s clip holds at most **1–2 physical actions** (never cram 4 scenes into 4s)
+- [ ] **Realism & living world**: every human/lifestyle shot includes concrete **camera + lens + light direction** and **≥2 real-world imperfections / living background cues**
+- [ ] **Strict Keyframe vs. I2V split**: keyframe locks static `t=0s` truth; video prompt specifies **delta motion & micro-beat acting** only
+- [ ] **Model-policy aware & restrained ending**: no unrequested smiles in pain beats, no visual FX pile-up at shot end, and note platform constraints (e.g., Seedance 2.0 blocks photoreal human face uploads; Veo 3.1 supports character refs)
