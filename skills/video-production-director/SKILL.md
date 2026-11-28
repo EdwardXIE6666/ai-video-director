@@ -42,6 +42,11 @@ Check all 8 required items whenever a user requests a video. If any core item is
 
 > **Knowledge & SOTA Rule**: Whenever encountering an unfamiliar technical domain, rendering technique, or workflow bottleneck, search the web / GitHub for current state-of-the-art open-source practices first before designing or coding.
 
+> **Stage 0 Prompt Crafting Rule (Mandatory Before Gate 0)**: Never pass raw user prose or vague buzzwords (`cinematic`, `stunning`, `4K`, `masterpiece`) into `project.json`. Read and apply [references/prompt-crafting-playbook.md](references/prompt-crafting-playbook.md) to engineer every shot using:
+> 1. **5-Layer Cinematography Formula**: `[Shot Type & Aesthetic] + [Subject, Materials & ≥2 Real-World Imperfections] + [Camera/Lens/Light Direction] + [Single-Take & Breath-Like Camera Float] + [Second-by-Second Beats + Restrained Ending]`.
+> 2. **Strict Keyframe vs. I2V Split**: `keyframe_prompt` locks static `t=0s` identity/lighting/product fidelity; `beat_timeline` / `video_prompt` specifies **delta motion & physics only** (never re-describing static pixels).
+> 3. **Positive-Noun Negative Prompt**: Populate Veo `negative_prompt` with comma-separated defect nouns (no `"no/don't"` prefixes) to block plastic skin, garbled text, holograms, and hard cuts.
+
 ## 3. Execution Pipeline & 4 Hard Quality Gates
 
 Run via `video_flow.py` from this repository:
