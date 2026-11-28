@@ -68,6 +68,7 @@ pip install -r requirements.txt
 python video_flow.py --config examples/product_ad_9x16.json --stage validate
 
 # 3. 一键跑 360p 低成本完整初稿（音频 -> 资产 -> 首帧 -> Gate 1 -> 360p视频 -> Gate 2 -> 合成 -> 账单）
+# 可选：通过 --tts-provider {edge,elevenlabs,gemini,openai,local} 自由切换配音引擎（edge 完全 $0 免费，elevenlabs 影视级音色）
 python video_flow.py --config examples/product_ad_9x16.json --stage all --res 360p --tag draft_360p
 
 # 4. 初稿审定后，一键只把 tier="hero" 的核心镜头升级为 720p 并自动重渲终片

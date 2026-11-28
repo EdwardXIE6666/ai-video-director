@@ -68,6 +68,7 @@ pip install -r requirements.txt
 python video_flow.py --config examples/product_ad_9x16.json --stage validate
 
 # 3. Run full 360p low-cost draft pre-viz (audio -> assets -> keyframes -> Gate 1 -> 360p video -> Gate 2 -> assemble -> cost)
+# Optional: swap voiceover engine via --tts-provider {edge,elevenlabs,gemini,openai,local} (edge is $0 free!)
 python video_flow.py --config examples/product_ad_9x16.json --stage all --res 360p --tag draft_360p
 
 # 4. After reviewing the draft, upgrade ONLY tier="hero" shots to 720p and re-assemble

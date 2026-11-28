@@ -21,6 +21,8 @@ import json
 import os
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -319,8 +321,12 @@ def compute_current_cost(cfg: dict, dirs: dict) -> tuple[float, float, float, li
             ot = sum(m.get("tokens", 0) for m in u.get("output_tokens_by_modality", []) if m.get("modality") == "image")
             img_cost += u.get("total_input_tokens", 200) * PRICE["img_in"] / 1e6 + u.get("total_thought_tokens", 500) * PRICE["img_thought"] / 1e6 + (ot or 1120) * PRICE["img_out"] / 1e6
 
+    tts_provider = ((cfg.get("tts") or {}).get("provider") or "gemini").lower()
     tts_sec = sum(ffprobe_dur(wf) for wf in dirs["audio"].glob("*.wav"))
-    tts_cost = tts_sec * PRICE["tts_audio_per_sec"]
+    if tts_provider in ("edge", "local", "custom"):
+        tts_cost = 0.0
+    else:
+        tts_cost = tts_sec * PRICE["tts_audio_per_sec"]
     return vid_cost, img_cost, tts_cost, vid_rows
 
 
@@ -380,9 +386,112 @@ def stage_assets(cfg: dict, dirs: dict, force: bool):
             raise RuntimeError(f"Asset failed: {name}: {msg}")
 
 
-def stage_audio(cfg: dict, dirs: dict, force: bool):
-    print("\n=== STAGE: audio (Radio Play First: Unified TTS + Optional BGM) ===")
+def _convert_to_wav(src: Path, dst_wav: Path):
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(src), "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", str(dst_wav)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True,
+    )
+
+
+def synthesize_tts(provider: str, tid: str, text: str, tts_cfg: dict, wav: Path):
+    """Pluggable Radio-Play-First TTS router: gemini | elevenlabs | edge | openai | local."""
+    prov = provider.strip().lower()
+    if prov in ("local", "custom"):
+        for ext in (".wav", ".mp3", ".m4a", ".flac"):
+            cand = wav.with_suffix(ext)
+            if cand.exists():
+                if ext != ".wav":
+                    _convert_to_wav(cand, wav)
+                return
+        raise FileNotFoundError(
+            f"Local TTS track missing for '{tid}'. Place your recorded/exported audio (from MiniMax, Fish Audio, Doubao, or voice actor) at: {wav} (or .mp3/.m4a)"
+        )
+
+    if prov == "gemini":
+        cmd = [
+            "gemini-api", "tts", "--stdin",
+            "-m", tts_cfg.get("model", "gemini-3.8-flash-tts"),
+            "-v", tts_cfg.get("voice", "Kore"),
+            "--language", tts_cfg.get("language", "zh-CN"),
+            "--style", tts_cfg.get("style", "Warm, calm, clear Mandarin Chinese narrator."),
+            "--out", str(wav), "-o", "json",
+        ]
+        p = subprocess.run(cmd, input=text, capture_output=True, text=True, encoding="utf-8")
+        if p.returncode != 0:
+            raise RuntimeError(f"Gemini TTS failed for {tid}: {p.stderr or p.stdout}")
+        return
+
+    tmp_mp3 = wav.with_suffix(".tmp.mp3")
+    try:
+        if prov == "edge":
+            voice = tts_cfg.get("voice", "zh-CN-XiaoxiaoNeural")
+            rate = tts_cfg.get("edge_rate", "+0%")
+            cmd = ["edge-tts", "--voice", voice, f"--rate={rate}", "--text", text, "--write-media", str(tmp_mp3)]
+            p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+            if p.returncode != 0:
+                raise RuntimeError(f"Edge TTS failed for {tid} (install via `pip install edge-tts`): {p.stderr or p.stdout}")
+        elif prov == "elevenlabs":
+            api_key = os.environ.get("ELEVENLABS_API_KEY")
+            if not api_key:
+                raise RuntimeError("ElevenLabs TTS requires ELEVENLABS_API_KEY environment variable.")
+            voice_id = tts_cfg.get("voice_id") or tts_cfg.get("voice") or "EXAVITQu4vr4xnSDxMaL"
+            payload = {
+                "text": text,
+                "model_id": tts_cfg.get("model", "eleven_multilingual_v2"),
+                "voice_settings": {
+                    "stability": float(tts_cfg.get("stability", 0.45)),
+                    "similarity_boost": float(tts_cfg.get("similarity_boost", 0.78)),
+                    "style": float(tts_cfg.get("style_exaggeration", 0.2)),
+                },
+            }
+            req = urllib.request.Request(
+                f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=mp3_44100_128",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"xi-api-key": api_key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    tmp_mp3.write_bytes(resp.read())
+            except urllib.error.HTTPError as exc:
+                raise RuntimeError(f"ElevenLabs HTTP {exc.code} for {tid}: {exc.read().decode('utf-8', 'ignore')[:400]}") from exc
+        elif prov == "openai":
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                raise RuntimeError("OpenAI TTS requires OPENAI_API_KEY environment variable.")
+            model = tts_cfg.get("model", "gpt-4o-mini-tts")
+            payload = {
+                "model": model,
+                "voice": tts_cfg.get("voice", "coral"),
+                "input": text,
+                "response_format": "mp3",
+            }
+            if tts_cfg.get("style") and "gpt-4o" in model:
+                payload["instructions"] = tts_cfg["style"]
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/audio/speech",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    tmp_mp3.write_bytes(resp.read())
+            except urllib.error.HTTPError as exc:
+                raise RuntimeError(f"OpenAI TTS HTTP {exc.code} for {tid}: {exc.read().decode('utf-8', 'ignore')[:400]}") from exc
+        else:
+            raise ValueError(f"Unsupported TTS provider: '{provider}' (use gemini | elevenlabs | edge | openai | local)")
+
+        _convert_to_wav(tmp_mp3, wav)
+    finally:
+        if tmp_mp3.exists():
+            tmp_mp3.unlink()
+
+
+def stage_audio(cfg: dict, dirs: dict, force: bool, tts_provider_override: str | None = None):
     tts_cfg = cfg.get("tts") or {}
+    provider = (tts_provider_override or tts_cfg.get("provider") or "gemini").lower()
+    print(f"\n=== STAGE: audio (Radio Play First | provider={provider} + Optional BGM) ===")
     tracks: dict[str, str] = {}
     if cfg.get("narration_tracks"):
         tracks.update(cfg["narration_tracks"])
@@ -399,19 +508,9 @@ def stage_audio(cfg: dict, dirs: dict, force: bool):
             print(f"[SKIP] {wav.name} ({dur:.2f}s)")
             timings[tid] = dur
             continue
-        cmd = [
-            "gemini-api", "tts", "--stdin",
-            "-m", tts_cfg.get("model", "gemini-3.8-flash-tts"),
-            "-v", tts_cfg.get("voice", "Kore"),
-            "--language", tts_cfg.get("language", "zh-CN"),
-            "--style", tts_cfg.get("style", "Warm, calm, clear Mandarin Chinese narrator."),
-            "--out", str(wav), "-o", "json",
-        ]
-        p = subprocess.run(cmd, input=text, capture_output=True, text=True, encoding="utf-8")
-        if p.returncode != 0:
-            raise RuntimeError(f"TTS failed for {tid}: {p.stderr or p.stdout}")
+        synthesize_tts(provider, tid, text, tts_cfg, wav)
         dur = ffprobe_dur(wav)
-        print(f"[OK]   {wav.name} ({dur:.2f}s)")
+        print(f"[OK]   {wav.name} ({dur:.2f}s | {provider})")
         timings[tid] = dur
     (dirs["audio"] / "timings.json").write_text(json.dumps(timings, indent=2), encoding="utf-8")
 
@@ -1070,6 +1169,7 @@ def main():
     ap.add_argument("--config", required=True, help="Path to strict project JSON storyboard")
     ap.add_argument("--stage", choices=["validate", "assets", "audio", "keyframes", "qc_keys", "video", "qc_video", "assemble", "upgrade_hero", "cost", "all"], default="all")
     ap.add_argument("--backend", choices=["ai_studio", "vertex"], default=None, help="Video & VLM QC backend: ai_studio (Gemini Omni 1.2 Flash) or vertex (GCP Vertex AI Veo 3.1)")
+    ap.add_argument("--tts-provider", choices=["gemini", "elevenlabs", "edge", "openai", "local"], default=None, help="Voiceover TTS provider override (default: tts.provider in config or gemini)")
     ap.add_argument("--res", choices=["360p", "720p", "1080p"], default="360p", help="Video resolution (default 360p draft; upgrade_hero defaults to 720p)")
     ap.add_argument("--shots", default="", help="Comma-separated shot IDs to target")
     ap.add_argument("--tag", default="final", help="Output filename tag")
@@ -1108,7 +1208,7 @@ def main():
         if st == "assets":
             stage_assets(cfg, dirs, args.force)
         elif st == "audio":
-            stage_audio(cfg, dirs, args.force)
+            stage_audio(cfg, dirs, args.force, tts_provider_override=args.tts_provider)
         elif st == "keyframes":
             stage_keyframes(cfg, dirs, target, args.force)
         elif st == "qc_keys":

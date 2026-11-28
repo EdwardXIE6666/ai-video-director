@@ -34,7 +34,13 @@ Check all 8 required items whenever a user requests a video. If any core item is
 4. **Subject & Product Visual Anchors**: Character identity/wardrobe; if a real product is involved, require product photos and crop/render a clean studio reference first.
 5. **Physics / Domain / Product Fidelity Rules**: What must be 100% accurate (e.g., waterline height, anatomical joint angles, exact product silhouette/colors) and what mistakes are forbidden.
 6. **Second-by-Second AV Shotlist**: Every 3–7s shot must specify timecode, camera framing/movement, 1–2s `beat_timeline`, synced VO line, music cue, callout safe zone, and `tier` (`standard` vs. `hero`). Use [references/av-script-template.md](references/av-script-template.md).
-7. **Audio & Music Plan**: Narrator voice/tone/pace, BGM progression, whether to preserve clip ambient SFX.
+7. **Audio & Music Plan (Multi-TTS Choice Menu)**: Always let the user pick their preferred voiceover provider in Stage 0 before running `--stage audio`:
+   - `edge` (**Microsoft Edge TTS**, `$0` free, zero API key, natural Chinese/English neural voices like `zh-CN-XiaoxiaoNeural` / `zh-CN-YunxiNeural`)
+   - `elevenlabs` (**ElevenLabs** `eleven_multilingual_v2` / voice cloning, top commercial emotion & breathiness, uses `ELEVENLABS_API_KEY`)
+   - `gemini` (**Gemini TTS**, `~$0.0002/s`, natural language `--style` emotion direction)
+   - `openai` (**OpenAI TTS** `gpt-4o-mini-tts`, strong English/bilingual control, uses `OPENAI_API_KEY`)
+   - `local` (**User-supplied audio**: drop recordings or exports from MiniMax / Doubao / Fish Audio / CosyVoice / human voice actors into `audio/<shot_id>.wav|.mp3`)
+   Also confirm BGM progression and whether to preserve clip ambient SFX.
 8. **Budget Strategy & Ceiling**: Default to **Cost-First Production** with an explicit `max_budget_usd`:
    - On AI Studio: **Draft-First (`360p` @ ~$0.023/s) → Hero-Only HD Upgrade (`720p/1080p`)**.
    - On Vertex AI (`--backend vertex`): default to **`veo-3.1-lite-generate-001` ($0.05/s @ 720p)** with **4s clips + local FFmpeg tempo stretch**; reserve `veo-3.1-fast-generate-001` ($0.10/s) only for complex human interaction hero shots via per-shot `"vertex_video_model"`.
