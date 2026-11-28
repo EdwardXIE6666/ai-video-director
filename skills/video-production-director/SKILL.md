@@ -20,11 +20,12 @@ Switch cleanly between these six roles (or delegate independent review roles via
 
 ## 2. Stage 0: Mandatory Intake & Script Doctor Audit (Hard Stop Before Spending)
 
-> **Script Doctor Rule (Never Blindly Follow a Flawed Outline)**: Even when the user provides a detailed script or frame-by-frame outline, you **MUST** critically audit it before generating anything. Ask and verify three questions first:
-> 1. **Spatial & Narrative Continuity**: Does the outline jump across too many disconnected rooms/settings in 60s? Consolidate into 1–2 continuous real-life spaces so movement flows naturally.
-> 2. **Mute Test (Visual-to-VO Alignment)**: If muted, can a viewer immediately understand what the voiceover emphasizes from the visuals alone? Replace filler actions (e.g., pouring water while talking about sneezing leaks, or staring blankly while talking about Kegel confusion) with concrete visual cause-and-effect actions.
-> 3. **Emotional Arc Accuracy**: During problem/pain beats, subjects MUST show authentic, restrained physical discomfort, awkwardness, or frustration (NEVER smiling or looking blissful), creating a genuine emotional contrast when the solution arrives.
-> If the user's outline fails any of these three checks, explicitly point out the gaps and propose a redesigned shotlist for approval at Gate 0 before spending any budget.
+> **Script Doctor & De-AI Copywriting Rule (Never Blindly Follow a Flawed Outline)**: Even when the user provides a detailed script or frame-by-frame outline, you **MUST** critically audit it using [references/script-and-copy-playbook.md](references/script-and-copy-playbook.md) before generating anything. Verify four gates first:
+> 1. **Spatial & Narrative Continuity**: Does the outline jump across too many disconnected rooms/settings in 60s? Consolidate into 1–2 continuous real-life spaces so movement flows naturally (and lock cross-episode state in `series_bible.json` for multi-episode series).
+> 2. **Mute Test & Show-Don't-Tell**: If muted, can a viewer immediately understand what the voiceover emphasizes from concrete actions and objects alone? Anchor emotion on filmable gestures/props instead of internal monologue or filler actions.
+> 3. **0–3s Hook & Authentic Emotional Arc**: Shot 1 must hook within 3 seconds; during problem/pain beats, subjects MUST show authentic, restrained physical discomfort, awkwardness, or frustration (NEVER smiling or looking blissful).
+> 4. **De-AI Living Voiceover Copy**: Strip all AI clichés (`不是A，而是B` flip-premise tropes, `赋能/抓手/闭环`, `在当今…时代`, `让我们…吧`, neat 3-part parallelisms, explaining emotions already shown on screen). Keep spoken lines breath-length (~3.5–4 Mandarin chars/s) and protect strong hooks during edits.
+> If the user's outline fails any check, explicitly point out the gaps and propose a redesigned shotlist for approval at Gate 0 before spending any budget.
 
 Check all 8 required items whenever a user requests a video. If any core item is missing or vague (e.g., a one-line prompt), **STOP** — do NOT generate media yet. Ask targeted clarifying questions OR draft a complete proposal for user approval:
 
