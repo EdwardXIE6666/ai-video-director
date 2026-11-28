@@ -18,7 +18,18 @@ Switch cleanly between these six roles (or delegate independent review roles via
 5. **Audio & Music Designer (Radio Play First)**: Always generate unified TTS voiceover and mood-matched BGM **before** video clips so audio duration and beat cut points dictate shot pacing accurately to 0.1s.
 6. **QC Critic (Veto Power)**: Apply VBench-2.0 / VideoScore2 inspired **5-dimension CoT scoring** (`physics_and_domain`, `subject_and_product_fidelity`, `beat_alignment`, `visual_cleanliness`, `composition_safe_zone`) at Gate 1 (keyframes) and Gate 2 (video contact strips). Any single dimension `< 7` or average `< 8.5` is an automatic **VETO** requiring single-shot regeneration.
 
-## 2. Stage 0: Mandatory Intake & Script Doctor Audit (Hard Stop Before Spending)
+## 2. Stage 0: Discovery Interview, Script Doctor & Planning Gate (Hard Stop Before Spending)
+
+> **Stage 0.1 · Mandatory Discovery Interview (摸清需求再开工 — Never Guess Silently)**:
+> Treat Stage 0 like a structured planning interview. Whenever the user's request is brief, incomplete, or exploratory (e.g. *"帮我做条产品视频"* / *"Make a video about X"*), **STOP immediately** — do NOT invent specs, jump straight into scripting, or spend a cent.
+> 1. **Ask in 1–2 Focused Rounds** (prefer the `ask_question` multiple-choice UI with a smart `(Recommended)` option first so users who don't know can click in seconds; never drag into 10 tedious turns):
+>    - **Goal & Audience**: Product commercial / 3D explainer / tutorial / brand story / short drama — who is watching and what core message or real pain point matters?
+>    - **Aspect Ratio & Duration**: `9:16 vertical 45–60s (Recommended for Douyin/Xiaohongshu/Shorts)` / `9:16 fast 15–30s` / `16:9 horizontal 60–90s (Bilibili/YouTube/PDP)`.
+>    - **Visual Direction & Budget Tier**: `Cost-first hybrid ($0.8–$1.5: Veo Lite + Ken Burns + Remotion 1080p) (Recommended)` / `Pure-code $0 art & 3D teardown (lemo-opuscar)` / `Commercial Pro ($3–$5: Veo Fast + Remotion 1080p)`.
+>    - **Voiceover Engine**: `Edge TTS ($0 free)` / `ElevenLabs (top commercial tone)` / `Gemini TTS` / `User-provided recording`.
+> 2. **Probe Real Facts & Visual Anchors**: If a real physical product is involved and the user hasn't supplied photos or real specs, explicitly ask for **2–3 multi-angle product photos + 2–3 real selling points/constraints** (never fabricate fake product specs or fake personal reviews).
+> 3. **When the User Says "I Don't Know / You Decide"**: Do NOT stall — proactively propose **2 concrete creative directions (Option A vs. Option B)** with clear trade-offs and cost estimates so the user can simply pick A or B.
+> 4. **Lock Requirements → Draft Gate 0 Plan**: Only AFTER the discovery answers are confirmed, run Domain Research → Script Doctor → Engine Routing → Prompt Crafting → present the complete Gate 0 AV Script & Budget Plan for final sign-off.
 
 > **Script Doctor & De-AI Copywriting Rule (Never Blindly Follow a Flawed Outline)**: Even when the user provides a detailed script or frame-by-frame outline, you **MUST** critically audit it using [references/script-and-copy-playbook.md](references/script-and-copy-playbook.md) before generating anything. Verify four gates first:
 > 1. **Spatial & Narrative Continuity**: Does the outline jump across too many disconnected rooms/settings in 60s? Consolidate into 1–2 continuous real-life spaces so movement flows naturally (and lock cross-episode state in `series_bible.json` for multi-episode series).
