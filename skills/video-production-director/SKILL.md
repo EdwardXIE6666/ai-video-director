@@ -48,6 +48,19 @@ Check all 8 required items whenever a user requests a video. If any core item is
 
 > **Knowledge & SOTA Rule**: Whenever encountering an unfamiliar technical domain, rendering technique, or workflow bottleneck, search the web / GitHub for current state-of-the-art open-source practices first before designing or coding.
 
+> **Stage 0 Engine Routing Rule (Decide *Which Tool Makes Each Shot* Before Prompting)**:
+> Never default blindly to paid AI video generation for every shot. Before writing prompts or quoting budget, classify the project — and **every individual shot** — using this decision matrix so paid tokens are ONLY spent where generative video is genuinely irreplaceable:
+>
+> | Shot / Film Type | Assigned Engine | Est. Cost | Why This Engine Wins |
+> | :--- | :--- | :--- | :--- |
+> | **3D product teardown, technical/data/map explainer, stylized art film (watercolor/oil/neon/ukiyo-e), motion concept** | **`lemo-opuscar`** (99 pure-code styles via Three.js / Canvas / Playwright) | **\$0** | Exact geometry, zero AI text/mesh hallucinations, 99 curated film styles |
+> | **Static product macro hero, studio showcase, clean title/ending hold** | **`static_ken_burns`** (crisp keyframe + local FFmpeg 2× supersampled pan/zoom) | **~\$0.036** (image only) | 1:1 locked product texture, zero morphing, saves 90%+ |
+> | **Simple live-action lifestyle, gentle ambient motion, calm transitions** | **`veo-lite`** (`veo-3.1-lite-generate-001`, 4s @ 720p + local tempo) | **\$0.20/shot** | Natural photorealism at half the cost of Fast |
+> | **Complex human acting, nuanced micro-expressions, tricky human-product physics** | **`veo-fast`** (`veo-3.1-fast-generate-001`, 4–6s @ 720p) or AI Studio `360p→720p` | **\$0.40–\$0.60/shot** | Highest physics & facial adherence where live-action realism matters most |
+> | **Final packaging: spring callouts, `ChecklistPop`, `LiquidGlass`, live HUD charts, kinetic captions, SFX, endcards** | **`remotion-best-practices` + `video-effects`** (1080p local render) | **\$0** | Vector-sharp typography, physics-driven motion graphics & sound design |
+>
+> **Hybrid Assembly Rule**: A single commercial SHOULD mix engines freely (e.g., Veo for human shots + `lemo-opuscar` for 3D teardown/explainer + `static_ken_burns` for macro product + Remotion for 1080p packaging) to hit agency quality under **\$1.00–\$1.40 total**.
+
 > **Stage 0 Prompt Crafting Rule (Mandatory Before Gate 0)**: Never pass raw user prose or vague buzzwords (`cinematic`, `stunning`, `4K`, `masterpiece`) into `project.json`. Read and apply [references/prompt-crafting-playbook.md](references/prompt-crafting-playbook.md) to engineer every shot using:
 > 1. **5-Layer Cinematography Formula**: `[Shot Type & Aesthetic] + [Subject, Materials & ≥2 Real-World Imperfections] + [Camera/Lens/Light Direction] + [Single-Take & Breath-Like Camera Float] + [Second-by-Second Beats + Restrained Ending]`.
 > 2. **Strict Keyframe vs. I2V Split**: `keyframe_prompt` locks static `t=0s` identity/lighting/product fidelity; `beat_timeline` / `video_prompt` specifies **delta motion & physics only** (never re-describing static pixels).

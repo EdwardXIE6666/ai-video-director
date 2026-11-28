@@ -21,12 +21,13 @@ Present this complete structure and obtain explicit user approval before invokin
 - **Music Progression**: Emotional arc across `0–20s` / `20–40s` / `40–60s`
 - **Ambient SFX**: Whether to preserve original clip ambience and ducking volume
 
-## 4. Second-by-Second AV Shotlist (No Vague One-Liners)
+## 4. Second-by-Second AV Shotlist & Engine Routing (No Vague One-Liners)
 
-| Shot ID | Tier | Timecode | Framing & Movement | Second-by-Second Beats (1–2s) | Physics / Fidelity Rules | Synced VO & Subtitles | Callout & Safe Zone | Music / SFX Cue |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `shot1` | `standard` | `00:00–00:06` | MS → slow push-in | `[0-2s] ...`<br>`[2-4s] ...`<br>`[4-6s] ...` | Rule 1; Rule 2 | VO: "..."<br>Sub: 1 / 2 | Top `y=80`: "..." | Soft piano enters |
-| `shot2` | `hero` | `00:06–00:13` | MCU / 3D | `[0-3.5s] ...`<br>`[3.5-7s] ...` | Rule 1; Rule 2 | VO: "..." | Top `y=100`: "..." | Strings swell gently |
+| Shot ID | Engine (`lemo-opuscar` / `ken-burns` / `veo-lite` / `veo-fast`) | Tier | Timecode | Framing & Movement | Second-by-Second Beats (1–2s) | Physics / Fidelity Rules | Synced VO & Subtitles | Remotion FX / Safe Zone | Music / SFX Cue |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `shot1` | `veo-lite` | `standard` | `00:00–00:06` | MS → slow push-in | `[0-2s] ...`<br>`[2-4s] ...`<br>`[4-6s] ...` | Rule 1; Rule 2 | VO: "..."<br>Sub: 1 / 2 | Top `y=108`: glass pill | Soft piano enters |
+| `shot2` | `lemo-opuscar` (\$0) | `hero` | `00:06–00:13` | 3D Exploded / Medical | `[0-3.5s] ...`<br>`[3.5-7s] ...` | Exact geometry, zero text | VO: "..." | Top `y=104`: live status bar | Subtle `click` SFX |
+| `shot3` | `ken-burns` (\$0) | `hero` | `00:13–00:17` | Macro 100mm push-in | `[0-4s] Smooth 1.0→1.08 push-in` | 1:1 product fidelity | VO: "..." | `LiquidGlass` lens + badge | Soft `whoosh` SFX |
 
 ## 5. Quality Gate Criteria
 - **Gate 1 (Keyframes) & Gate 2 (Video Strips)**: 5-dimension VLM CoT score average `>= 8.5` with no single dimension `< 7`, plus human visual verification.

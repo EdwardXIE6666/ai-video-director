@@ -88,6 +88,20 @@ python video_flow.py --config examples/product_ad_9x16.json --stage cost
 
 ---
 
+## 多引擎分工决策矩阵（Stage 0 自动路由）
+
+在 Stage 0 写分镜表时，按镜头类型自动分配最优生成引擎，只把预算花在不可替代的镜头上：
+
+| 镜头 / 内容类型 | 推荐生成引擎 | 单镜成本 |
+| :--- | :--- | :--- |
+| 3D 产品拆解、数据/地图科普、艺术风格动画概念片 | 纯代码映画（`lemo-opuscar` / Three.js / Canvas，99 种风格） | **\$0** |
+| 静态产品微距展示、品牌定格、静谧空镜 | 高清首帧 + 本机 `static_ken_burns` 平滑推拉 | 约 **\$0.036**（仅出图费） |
+| 常规真人生活镜、柔和环境动态 | Vertex AI `veo-3.1-lite-generate-001`（4s @ 720p） | **\$0.20/镜** |
+| 复杂人物情绪表演、人与产品物理交互 Hero 镜 | Vertex AI `veo-3.1-fast-generate-001` 或 AI Studio `360p→720p` | **\$0.40–\$0.60/镜** |
+| 全片高级包装（弹性胶囊、液态玻璃、实时仪表盘、逐字高亮字幕、音效、结尾卡） | 本机 `Remotion` + `video-effects`（1080p 矢量渲染） | **\$0** |
+
+---
+
 ## 使用内置 Agent Skill（AI 编程助手自动接入）
 
 本仓库在 `skills/video-production-director/` 中附带了开箱即用的标准 Agent Skill，兼容 **Antigravity**、**Claude Code**、**Cursor** 等支持 `SKILL.md` 的 AI 助手。

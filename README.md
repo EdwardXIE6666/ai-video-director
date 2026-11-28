@@ -88,6 +88,20 @@ python video_flow.py --config examples/product_ad_9x16.json --stage cost
 
 ---
 
+## Multi-Engine Division of Labor (Stage 0 Routing)
+
+Every shot is explicitly routed in Stage 0 to the lowest-cost engine that delivers maximum quality:
+
+| Shot Type | Recommended Engine | Cost |
+| :--- | :--- | :--- |
+| 3D product teardown, data/map explainer, stylized art film | Pure-code film (`lemo-opuscar` / Three.js / Canvas) | `$0` |
+| Static product macro hero, studio card, calm hold | Keyframe + `static_ken_burns` (`video_flow.py`) | `~$0.036` |
+| Standard live-action lifestyle shots | Vertex AI `veo-3.1-lite-generate-001` (4s @ 720p) | `$0.20/shot` |
+| Complex human acting & product-interaction hero shots | Vertex AI `veo-3.1-fast-generate-001` or AI Studio `360p→720p` | `$0.40–$0.60/shot` |
+| Agency packaging (spring callouts, kinetic captions, SFX, endcards) | Local `Remotion` + `video-effects` (1080p) | `$0` |
+
+---
+
 ## Using the Included Agent Skill
 
 This repo ships with a ready-to-use Agent Skill in `skills/video-production-director/` compatible with **Antigravity**, **Claude Code**, **Cursor**, and any `SKILL.md`-aware coding agent.
